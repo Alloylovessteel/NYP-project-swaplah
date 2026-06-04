@@ -1,11 +1,14 @@
 ## SwapLah
 
 ## Definition of Done (DoD)
-- [ ] Code is pushed to a dedicated feature branch.
-- [ ] Code passes Pylint (score ≥ 7.0).
-- [ ] Unit/API tests are written for the feature and pass in the pipeline.
-- [ ] AI log is updated with a prompt and changes made.
-- [ ] Peer review completed and Merge Request (MR) approved by a team member.
+- [ ] **Feature Branch:** Code is pushed to a dedicated feature branch, not `main`.
+- [ ] **Code Quality:** All Python code passes Pylint (score ≥ 7.0).
+- [ ] **Testing:** Unit, API, and UI tests are developed and passing in the CI/CD pipeline.
+- [ ] **AI Transparency:** AI usage is logged in `AI/<student_id>_AI_LOG.md` with prompt and rationale.
+- [ ] **Peer Review:** Merge Request (MR) is created, reviewed, and approved by at least one other team member.
+- [ ] **Validation:** All Acceptance Criteria (AC) for the issue are verified and ticked.
+- [ ] **Regression Testing:** No regression; existing features are confirmed to work.
+- [ ] **Closure:** Issue is moved to "Done" on the GitLab board and MR is merged to `main`.
 
 ## Getting started
 
