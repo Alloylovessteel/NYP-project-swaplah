@@ -1,6 +1,11 @@
-# Swaplah
+## SwapLah
 
-
+## Definition of Done (DoD)
+- [ ] Code is pushed to a dedicated feature branch.
+- [ ] Code passes Pylint (score ≥ 7.0).
+- [ ] Unit/API tests are written for the feature and pass in the pipeline.
+- [ ] AI log is updated with a prompt and changes made.
+- [ ] Peer review completed and Merge Request (MR) approved by a team member.
 
 ## Getting started
 

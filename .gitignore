@@ -1,0 +1,10 @@
+# Python environment
+venv/
+__pycache__/
+*.pyc
+
+# Security
+.env
+
+# Project logs
+AI/*.log
