@@ -7,4 +7,4 @@ __pycache__/
 .env
 
 # Project logs
-AI/*.log
+AI/*.log.env
