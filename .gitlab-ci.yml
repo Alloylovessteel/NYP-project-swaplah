@@ -1,0 +1,17 @@
+stages:
+  - lint
+  - test
+
+pylint_check:
+  stage: lint
+  image: python:3.9
+  script:
+    - pip install pylint
+    - pylint app/ --rcfile=setup.cfg
+
+pytest_check:
+  stage: test
+  image: python:3.9
+  script:
+    - pip install pytest
+    - pytest tests/unit/
