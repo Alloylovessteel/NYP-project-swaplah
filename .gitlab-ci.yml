@@ -15,4 +15,4 @@ pytest_check:
   image: python:3.9
   script:
     - pip install pytest
-    - pytest tests/unit/
+    - python -m pytest tests/unit/
