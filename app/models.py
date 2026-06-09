@@ -5,6 +5,17 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+class User(db.Model):
+    """Model representing a student user."""
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.String(20), unique=True, nullable=False)
+    display_name = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    contact_number = db.Column(db.String(20), nullable=False)
+    # A User can have many Listings
+    listings = db.relationship('Listing', backref='seller', lazy=True)
+
 class Listing(db.Model):
     """Model representing an item listing in the marketplace."""
     __tablename__ = 'listings'
@@ -18,9 +29,13 @@ class Listing(db.Model):
     image_url = db.Column(db.String(255), nullable=False)
 
     listing_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    last_modified = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_modified = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), 
+                              onupdate=lambda: datetime.now(timezone.utc))
 
     is_deleted = db.Column(db.Boolean, default=False)
+
+    # Link to the User who created this listing
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     def to_dict(self):
         """Convert model instance to dictionary for JSON responses."""
@@ -33,5 +48,6 @@ class Listing(db.Model):
             "condition": self.condition,
             "image_url": self.image_url,
             "listing_date": self.listing_date.isoformat(),
-            "last_modified": self.last_modified.isoformat()
+            "last_modified": self.last_modified.isoformat(),
+            "seller_id": self.seller_id # Added this
         }
