@@ -16,6 +16,9 @@ def create_app():
     with app.app_context():
         db.create_all() # Creates the .db file automatically
 
+    from .routes import listings_bp
+    app.register_blueprint(listings_bp)
+
     @app.route('/api/health', methods=['GET'])
     def health_check():
         """Health check endpoint to verify server is running."""
