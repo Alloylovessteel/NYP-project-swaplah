@@ -1,5 +1,5 @@
 """Database models for the SwapLah application."""
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 
@@ -17,8 +17,8 @@ class Listing(db.Model):
     condition = db.Column(db.String(20), nullable=False)
     image_url = db.Column(db.String(255), nullable=False)
 
-    listing_date = db.Column(db.DateTime, default=datetime.utcnow)
-    last_modified = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    listing_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    last_modified = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     is_deleted = db.Column(db.Boolean, default=False)
 
