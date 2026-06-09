@@ -14,5 +14,5 @@ pytest_check:
   stage: test
   image: python:3.9
   script:
-    - pip install pytest
+    - pip install -r requirements.txt
     - python -m pytest tests/unit/
