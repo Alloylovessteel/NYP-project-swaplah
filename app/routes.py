@@ -1,5 +1,5 @@
 """Routes for the Listings management."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from .models import db, Listing
 
 # Create a Blueprint for listings
@@ -87,3 +87,8 @@ def get_listing_detail(listing_id):
         }
     
     return jsonify(result), 200
+
+@listings_bp.route('/marketplace')
+def marketplace_page():
+    """Render the Marketplace HTML page."""
+    return render_template('listings.html')
