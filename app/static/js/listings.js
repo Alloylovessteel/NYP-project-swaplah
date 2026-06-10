@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>
                         <div class="card-footer bg-white border-top-0">
-                            <a href="/api/listings/${item.id}" class="btn btn-outline-primary btn-sm w-100">View Details</a>
+                            <a href="/listings/${item.id}" class="btn btn-outline-primary btn-sm w-100">View Details</a>
                         </div>
                     </div>
                 </div>

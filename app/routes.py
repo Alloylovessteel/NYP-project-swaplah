@@ -20,7 +20,8 @@ def create_listing():
         price=data['price'],
         category=data['category'],
         condition=data['condition'],
-        image_url=data['image_url']
+        image_url=data['image_url'],
+        seller_id=1 # Temporary
     )
 
     try:
@@ -34,10 +35,8 @@ def create_listing():
 @listings_bp.route('/api/listings', methods=['GET'])
 def get_listings():
     """Returns active listings with search, filter, and pagination."""
-    # 1. Base query: only show non-deleted items
     query = Listing.query.filter_by(is_deleted=False)
 
-    # 2. Keyword Search (Title and Description) - Requirement Page 2, C.vii
     search_query = request.args.get('search')
     if search_query:
         query = query.filter(
@@ -45,7 +44,6 @@ def get_listings():
             (Listing.description.ilike(f'%{search_query}%'))
         )
 
-    # 3. Filter by Category and Condition - Requirement Page 2, C.viii
     category_filter = request.args.get('category')
     if category_filter:
         query = query.filter_by(category=category_filter)
@@ -54,10 +52,8 @@ def get_listings():
     if condition_filter:
         query = query.filter_by(condition=condition_filter)
 
-    # 4. Sorting: Newest first - Requirement Page 2, C.vii
     query = query.order_by(Listing.listing_date.desc())
 
-    # 5. Pagination: 10 items per page - Requirement Page 2, C.vi
     page = request.args.get('page', 1, type=int)
     pagination = query.paginate(page=page, per_page=10, error_out=False)
 
@@ -68,28 +64,59 @@ def get_listings():
         "current_page": pagination.page
     }), 200
 
-@listings_bp.route('/api/listings/<listing_id>', methods=['GET'])
-def get_listing_detail(listing_id):
-    """Returns a single listing by ID with seller details."""
-    listing = Listing.query.get_or_404(listing_id)
+@listings_bp.route('/api/listings/<listing_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_single_listing(listing_id):
+    """Handles fetching, updating, and deleting a single listing."""
+    listing = db.get_or_404(Listing, listing_id)
     
-    if listing.is_deleted:
-        return jsonify({"error": "Listing not found"}), 404
+    # 1. GET: Fetch Details
+    if request.method == 'GET':
+        if listing.is_deleted:
+            return jsonify({"error": "Listing not found"}), 404
+        result = listing.to_dict()
+        if listing.seller:
+            result['seller_info'] = {
+                "display_name": listing.seller.display_name,
+                "email": listing.seller.email,
+                "contact_number": listing.seller.contact_number
+            }
+        return jsonify(result), 200
 
-    result = listing.to_dict()
-    
-    # Requirement Page 2, C.x: Show Seller Name, Email, and Phone
-    if listing.seller:
-        result['seller_info'] = {
-            "display_name": listing.seller.display_name,
-            "email": listing.seller.email,
-            "contact_number": listing.seller.contact_number
-        }
-    
-    return jsonify(result), 200
+    # 2. PUT: Update Listing
+    if request.method == 'PUT':
+        if listing.is_deleted:
+            return jsonify({"error": "Cannot edit a deleted listing"}), 404
+        data = request.get_json()
+        fields = ['title', 'description', 'price', 'category', 'condition', 'image_url']
+        for field in fields:
+            if field in data:
+                setattr(listing, field, data[field])
+        db.session.commit()
+        return jsonify(listing.to_dict()), 200
+
+    # 3. DELETE: Soft-delete
+    if request.method == 'DELETE':
+        listing.is_deleted = True
+        db.session.commit()
+        return jsonify({"message": "Listing successfully deleted"}), 200
+# --- CHANGE ENDS HERE ---
 
 @listings_bp.route('/marketplace')
 def marketplace_page():
     """Render the Marketplace HTML page."""
     return render_template('listings.html')
 
+@listings_bp.route('/create-listing')
+def create_listing_page():
+    """Render the Create Listing HTML page."""
+    return render_template('create_listing.html')
+
+@listings_bp.route('/listings/<listing_id>')
+def listing_detail_page(listing_id):
+    """Render the Listing Detail HTML page."""
+    return render_template('listing_detail.html', listing_id=listing_id)
+
+@listings_bp.route('/edit-listing/<listing_id>')
+def edit_listing_page(listing_id):
+    """Render the Edit Listing HTML page."""
+    return render_template('edit_listing.html', listing_id=listing_id)
