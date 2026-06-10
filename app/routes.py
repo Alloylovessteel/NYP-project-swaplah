@@ -71,14 +71,14 @@ def get_listings():
 @listings_bp.route('/api/listings/<listing_id>', methods=['GET'])
 def get_listing_detail(listing_id):
     """Returns a single listing by ID with seller details."""
-    listing = Listing.query.get_or_404(listing_id)
+    listing = db.get_or_404(Listing, listing_id)
     
     if listing.is_deleted:
         return jsonify({"error": "Listing not found"}), 404
 
     result = listing.to_dict()
     
-    # Requirement Page 2, C.x: Show Seller Name, Email, and Phone
+    # Show Seller Name, Email, and Phone
     if listing.seller:
         result['seller_info'] = {
             "display_name": listing.seller.display_name,
@@ -87,3 +87,44 @@ def get_listing_detail(listing_id):
         }
     
     return jsonify(result), 200
+
+@listings_bp.route('/api/listings/<listing_id>', methods=['PUT'])
+def update_listing(listing_id):
+    """Updates an existing listing (owner only)."""
+    listing = db.get_or_404(Listing, listing_id)
+
+    # Only the seller can edit/delete
+    # (Note: I will add strict auth check once Shamreen finishes User Auth)
+
+    if listing.is_deleted:
+        return jsonify({"error": "Cannot edit a deleted listing"}), 404
+
+    data = request.get_json()
+
+    # Update allowed fields
+    if 'title' in data:
+        listing.title = data['title']
+    if 'description' in data:
+        listing.description = data['description']
+    if 'price' in data:
+        listing.price = data['price']
+    if 'category' in data:
+        listing.category = data['category']
+    if 'condition' in data:
+        listing.condition = data['condition']
+    if 'image_url' in data:
+        listing.image_url = data['image_url']
+
+    db.session.commit()
+    return jsonify(listing.to_dict()), 200
+
+@listings_bp.route('/api/listings/<listing_id>', methods=['DELETE'])
+def delete_listing(listing_id):
+    """Soft-deletes a listing by setting is_deleted to True."""
+    listing = db.get_or_404(Listing, listing_id)
+
+    # Deletion is a soft delete
+    listing.is_deleted = True
+    db.session.commit()
+
+    return jsonify({"message": "Listing successfully deleted"}), 200
