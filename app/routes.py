@@ -92,3 +92,4 @@ def get_listing_detail(listing_id):
 def marketplace_page():
     """Render the Marketplace HTML page."""
     return render_template('listings.html')
+
