@@ -1,6 +1,7 @@
 """Routes for the Listings management."""
 from flask import Blueprint, request, jsonify, render_template
-from .models import db, Listing
+from .models import db, Listing, Report
+
 
 # Create a Blueprint for listings
 listings_bp = Blueprint('listings', __name__)
@@ -119,3 +120,50 @@ def listing_detail_page(listing_id):
 def edit_listing_page(listing_id):
     """Render the Edit Listing HTML page."""
     return render_template('edit_listing.html', listing_id=listing_id)
+
+# Reports
+@listings_bp.route('/api/reports', methods=['POST'])
+def create_report():
+    """Submit a report for a listing."""
+
+    data = request.get_json()
+
+    required_fields = ['listing_id', 'reason', 'description']
+
+    for field in required_fields:
+        if field not in data or not str(data[field]).strip():
+            return jsonify({
+                "error": f"Field '{field}' is required"
+            }), 400
+
+    listing = Listing.query.filter_by(
+        id=data['listing_id'],
+        is_deleted=False
+    ).first()
+
+    if not listing:
+        return jsonify({
+            "error": "Listing not found"
+        }), 404
+
+    report = Report(
+        listing_id=data['listing_id'],
+        reason=data['reason'],
+        description=data['description']
+    )
+
+    try:
+        db.session.add(report)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Report submitted successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+
+        return jsonify({
+            "error": "Internal Server Error",
+            "message": str(e)
+        }), 500
