@@ -56,3 +56,25 @@ class Listing(db.Model):
             "last_modified": self.last_modified.isoformat(),
             "seller_id": self.seller_id
         }
+    
+class Report(db.Model):
+    """Model representing a reported listing."""
+
+    __tablename__ = 'reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=False
+    )
+
+    reason = db.Column(db.String(100), nullable=False)
+
+    description = db.Column(db.Text, nullable=False)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
