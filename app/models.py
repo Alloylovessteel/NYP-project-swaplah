@@ -70,6 +70,12 @@ class Report(db.Model):
         nullable=False
     )
 
+    listing = db.relationship(
+        'Listing',
+        backref='reports',
+        lazy=True
+    )
+
     reason = db.Column(db.String(100), nullable=False)
 
     description = db.Column(db.Text, nullable=False)
@@ -78,3 +84,13 @@ class Report(db.Model):
         db.DateTime,
         default=lambda: datetime.now(timezone.utc)
     )
+
+    def to_dict(self):
+        """Convert report instance to dictionary for JSON responses."""
+        return {
+            "id": self.id,
+            "listing_id": self.listing_id,
+            "reason": self.reason,
+            "description": self.description,
+            "created_at": self.created_at.isoformat()
+        }
