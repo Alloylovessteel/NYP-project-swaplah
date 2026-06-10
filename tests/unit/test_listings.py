@@ -88,3 +88,41 @@ def test_pagination_logic(client):
     # Check page 2 (Should have the remaining 2 items)
     response = client.get('/api/listings?page=2')
     assert len(response.json['listings']) == 2
+
+def test_update_listing(client):
+    """Test updating a listing's title and price (Requirement C.iii)."""
+    # 1. Create an item
+    res = client.post('/api/listings', json={
+        "title": "Old Title", "description": "d", "price": "10",
+        "category": "C", "condition": "N", "image_url": "t.jpg"
+    })
+    listing_id = res.json['id']
+
+    # 2. Update it
+    update_res = client.put(f'/api/listings/{listing_id}', json={
+        "title": "New Title",
+        "price": "20.00"
+    })
+    assert update_res.status_code == 200
+    assert update_res.json['title'] == "New Title"
+    assert update_res.json['price'] == "20.00"
+
+def test_soft_delete_listing(client):
+    """Test that deleting an item hides it from browse results (Requirement C.v)."""
+    # 1. Create an item
+    res = client.post('/api/listings', json={
+        "title": "Delete Me", "description": "d", "price": "10",
+        "category": "C", "condition": "N", "image_url": "t.jpg"
+    })
+    listing_id = res.json['id']
+
+    # 2. Delete it
+    client.delete(f'/api/listings/{listing_id}')
+
+    # 3. Verify it is hidden from the browse list
+    browse_res = client.get('/api/listings')
+    assert len(browse_res.json['listings']) == 0
+
+    # 4. Verify detail view returns 404
+    detail_res = client.get(f'/api/listings/{listing_id}')
+    assert detail_res.status_code == 404

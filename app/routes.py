@@ -99,7 +99,6 @@ def handle_single_listing(listing_id):
         listing.is_deleted = True
         db.session.commit()
         return jsonify({"message": "Listing successfully deleted"}), 200
-# --- CHANGE ENDS HERE ---
 
 @listings_bp.route('/marketplace')
 def marketplace_page():
