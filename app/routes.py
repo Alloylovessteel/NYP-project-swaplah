@@ -167,3 +167,20 @@ def create_report():
             "error": "Internal Server Error",
             "message": str(e)
         }), 500
+    
+@listings_bp.route('/api/admin/reports', methods=['GET'])
+def get_reports():
+    """Return all submitted reports."""
+
+    reports = Report.query.order_by(
+        Report.created_at.desc()
+    ).all()
+
+    return jsonify(
+        [report.to_dict() for report in reports]
+    ), 200
+
+@listings_bp.route('/admin/reports')
+def reports_page():
+    """Render reports management page."""
+    return render_template('reports.html')
