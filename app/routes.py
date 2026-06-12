@@ -1,6 +1,7 @@
 """Routes for the Listings management."""
 from flask import Blueprint, request, jsonify, render_template
-from .models import db, Listing
+from .models import db, Listing, Report, User
+
 
 # Create a Blueprint for listings
 listings_bp = Blueprint('listings', __name__)
@@ -119,3 +120,111 @@ def listing_detail_page(listing_id):
 def edit_listing_page(listing_id):
     """Render the Edit Listing HTML page."""
     return render_template('edit_listing.html', listing_id=listing_id)
+
+# Reports
+@listings_bp.route('/api/reports', methods=['POST'])
+def create_report():
+    """Submit a report for a listing."""
+
+    data = request.get_json()
+
+    required_fields = ['listing_id', 'reason', 'description']
+
+    for field in required_fields:
+        if field not in data or not str(data[field]).strip():
+            return jsonify({
+                "error": f"Field '{field}' is required"
+            }), 400
+
+    listing = Listing.query.filter_by(
+        id=data['listing_id'],
+        is_deleted=False
+    ).first()
+
+    if not listing:
+        return jsonify({
+            "error": "Listing not found"
+        }), 404
+
+    report = Report(
+        listing_id=data['listing_id'],
+        reason=data['reason'],
+        description=data['description']
+    )
+
+    try:
+        db.session.add(report)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Report submitted successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+
+        return jsonify({
+            "error": "Internal Server Error",
+            "message": str(e)
+        }), 500
+    
+@listings_bp.route('/api/admin/reports', methods=['GET'])
+def get_reports():
+    """Return all submitted reports."""
+
+    reports = Report.query.order_by(
+        Report.created_at.desc()
+    ).all()
+
+    return jsonify(
+        [report.to_dict() for report in reports]
+    ), 200
+
+@listings_bp.route('/admin/reports')
+def reports_page():
+    """Render reports management page."""
+    return render_template('reports.html')
+
+@listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
+def dismiss_report(report_id):
+    """Dismiss a report."""
+
+    report = db.get_or_404(Report, report_id)
+
+    db.session.delete(report)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Report dismissed successfully"
+    }), 200
+
+@listings_bp.route('/admin/users')
+def users_page():
+    """Render user management page."""
+    return render_template('users.html')
+
+@listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
+def suspend_user(user_id):
+    """Suspend a user account."""
+
+    user = db.get_or_404(User, user_id)
+
+    user.account_status = "suspended"
+    db.session.commit()
+
+    return jsonify({
+        "message": "User suspended successfully"
+    }), 200
+
+@listings_bp.route('/api/admin/users/<int:user_id>/unsuspend', methods=['PUT'])
+def unsuspend_user(user_id):
+    """Unsuspend a user account."""
+
+    user = db.get_or_404(User, user_id)
+
+    user.account_status = "active"
+    db.session.commit()
+
+    return jsonify({
+        "message": "User unsuspended successfully"
+    }), 200
