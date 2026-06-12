@@ -119,3 +119,65 @@ def listing_detail_page(listing_id):
 def edit_listing_page(listing_id):
     """Render the Edit Listing HTML page."""
     return render_template('edit_listing.html', listing_id=listing_id)
+
+
+
+@bp.route('/api/reviews', methods=['POST'])
+def leave_review():
+    """AC-1 to AC-4: Handles submitting a review for a completed trade."""
+    data = request.get_json() or {}
+    tx_id = data.get('transaction_id')
+    reviewer_id = data.get('reviewer_id')
+    reviewee_id = data.get('reviewee_id')
+    rating = data.get('rating')
+    comment = data.get('comment', '')
+
+    # AC-2: Input validation constraints
+    if not isinstance(rating, int) or not (1 <= rating <= 5):
+        return jsonify({"error": "Rating must be an integer between 1 and 5"}), 400
+    if len(comment) > 500:
+        return jsonify({"error": "Comment must not exceed 500 characters"}), 400
+
+    # AC-1: Gating mechanism - Verify transaction exists in the DB
+    tx_record = Transaction.query.get(tx_id)
+    if not tx_record:
+        return jsonify({"error": "Transaction not found or not completed"}), 404
+
+    try:
+        new_review = Review(
+            transaction_id=tx_id, reviewer_id=reviewer_id,
+            reviewee_id=reviewee_id, rating=rating, comment=comment
+        )
+        db.session.add(new_review)
+        db.session.commit()
+        return jsonify({"message": "Review submitted successfully!"}), 201
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Duplicate submission detected for this transaction"}), 409
+
+
+@bp.route('/api/users/<int:user_id>/reviews', methods=['GET'])
+def get_user_reviews(user_id):
+    """AC-1, AC-3, AC-4: Fetches individual reviews and computes the arithmetic mean."""
+    user_reviews = Review.query.filter_by(reviewee_id=user_id).all()
+    total = len(user_reviews)
+
+    # AC-4: Null state exception handling for unrated new traders
+    if total == 0:
+        return jsonify({
+            "average_rating_display": "No ratings yet (New Trader)",
+            "numeric_rating": None, "total_reviews": 0, "reviews": []
+        }), 200
+
+    # AC-1 & AC-3: Calculate arithmetic mean and round strictly to 1 decimal place
+    scores = [r.rating for r in user_reviews]
+    avg_score = round(sum(scores) / total, 1)
+
+    reviews_data = [
+        {"reviewer_id": r.reviewer_id, "rating": r.rating, "comment": r.comment}
+        for r in user_reviews
+    ]
+    return jsonify({
+        "average_rating_display": f"⭐ {avg_score:.1f} / 5.0",
+        "numeric_rating": avg_score, "total_reviews": total, "reviews": reviews_data
+    }), 200
