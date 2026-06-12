@@ -94,3 +94,70 @@ class Report(db.Model):
             "description": self.description,
             "created_at": self.created_at.isoformat()
         }
+
+
+class Offer(db.Model):
+    """Model representing an offer made on a listing."""
+    __tablename__ = 'offers'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=False
+    )
+
+    buyer_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    offer_price = db.Column(db.String(20))
+
+    swap_listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=True
+    )
+
+    status = db.Column(
+        db.String(20),
+        default='pending'
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class Transaction(db.Model):
+    """Completed transaction history."""
+    __tablename__ = 'transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=False
+    )
+
+    buyer_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    seller_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    completed_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
