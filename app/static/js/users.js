@@ -37,6 +37,7 @@ document.addEventListener(
                             <th>Display Name</th>
                             <th>Email</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
@@ -49,6 +50,23 @@ document.addEventListener(
                                     <td>${user.display_name}</td>
                                     <td>${user.email}</td>
                                     <td>${user.account_status}</td>
+                                    <td>
+                                        ${
+                                            user.account_status === "active"
+                                            ?
+                                            `<button
+                                                class="btn btn-danger suspend-btn"
+                                                data-id="${user.id}">
+                                                Suspend
+                                            </button>`
+                                            :
+                                            `<button
+                                                class="btn btn-success unsuspend-btn"
+                                                data-id="${user.id}">
+                                                Unsuspend
+                                            </button>`
+                                        }
+                                    </td>
                                 </tr>
                             `
             ).join("")}
@@ -57,6 +75,52 @@ document.addEventListener(
 
                 </table>
             `;
+
+            document
+                .querySelectorAll(".suspend-btn")
+                .forEach(button => {
+
+                    button.addEventListener(
+                        "click",
+                        async () => {
+
+                            const userId =
+                                button.dataset.id;
+
+                            await fetch(
+                                `/api/admin/users/${userId}/suspend`,
+                                {
+                                    method: "PUT"
+                                }
+                            );
+
+                            location.reload();
+                        }
+                    );
+                });
+
+            document
+                .querySelectorAll(".unsuspend-btn")
+                .forEach(button => {
+
+                    button.addEventListener(
+                        "click",
+                        async () => {
+
+                            const userId =
+                                button.dataset.id;
+
+                            await fetch(
+                                `/api/admin/users/${userId}/unsuspend`,
+                                {
+                                    method: "PUT"
+                                }
+                            );
+
+                            location.reload();
+                        }
+                    );
+                });
 
         } catch {
 

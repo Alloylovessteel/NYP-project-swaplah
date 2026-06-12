@@ -1,6 +1,6 @@
 """Routes for the Listings management."""
 from flask import Blueprint, request, jsonify, render_template
-from .models import db, Listing, Report
+from .models import db, Listing, Report, User
 
 
 # Create a Blueprint for listings
@@ -203,6 +203,28 @@ def users_page():
     """Render user management page."""
     return render_template('users.html')
 
+@listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
+def suspend_user(user_id):
+    """Suspend a user account."""
 
+    user = db.get_or_404(User, user_id)
 
+    user.account_status = "suspended"
+    db.session.commit()
 
+    return jsonify({
+        "message": "User suspended successfully"
+    }), 200
+
+@listings_bp.route('/api/admin/users/<int:user_id>/unsuspend', methods=['PUT'])
+def unsuspend_user(user_id):
+    """Unsuspend a user account."""
+
+    user = db.get_or_404(User, user_id)
+
+    user.account_status = "active"
+    db.session.commit()
+
+    return jsonify({
+        "message": "User unsuspended successfully"
+    }), 200
