@@ -228,3 +228,74 @@ def unsuspend_user(user_id):
     return jsonify({
         "message": "User unsuspended successfully"
     }), 200
+
+
+
+    @bp.route('/api/reviews', methods=['POST'])
+def leave_review():
+    """AC-1 to AC-4: Handles submitting a validated merchant rating for completed trades."""
+    data = request.get_json() or {}
+    tx_id = data.get('transaction_id')
+    reviewer_id = data.get('reviewer_id')
+    reviewee_id = data.get('reviewee_id')
+    rating = data.get('rating')
+    comment = data.get('comment', '')
+
+    # AC-2 Validation Checks
+    if not isinstance(rating, int) or not (1 <= rating <= 5):
+        return jsonify({"error": "Rating must be an integer between 1 and 5"}), 400
+    if len(comment) > 500:
+        return jsonify({"error": "Comment must not exceed 500 characters"}), 400
+
+    # Defensive Addition: Prevent a trader from reviewing themselves
+    if reviewer_id == reviewee_id:
+        return jsonify({"error": "You cannot submit a review for yourself"}), 400
+
+    # AC-1 Gating: Validate the transaction exists using your team's .get pattern
+    tx_record = db.session.get(Transaction, tx_id)
+    if not tx_record:
+        return jsonify({"error": "Transaction not found or not completed"}), 404
+
+    try:
+        new_review = Review(
+            transaction_id=tx_id, reviewer_id=reviewer_id,
+            reviewee_id=reviewee_id, rating=rating, comment=comment
+        )
+        db.session.add(new_review)
+        db.session.commit()
+        return jsonify({"message": "Review submitted successfully!", "review": new_review.to_dict()}), 201
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Duplicate submission detected for this transaction"}), 409
+
+
+@bp.route('/api/users/<int:user_id>/reviews', methods=['GET'])
+def get_user_reviews(user_id):
+    """AC-1, AC-3, AC-4: Aggregates metrics and returns structured reviews for profile pages."""
+    # Verify user profile exists first
+    target_user = db.session.get(User, user_id)
+    if not target_user:
+        return jsonify({"error": "User profile not found"}), 404
+
+    user_reviews = Review.query.filter_by(reviewee_id=user_id).all()
+    total = len(user_reviews)
+
+    # AC-4: Clear Null State fallback design for unrated users
+    if total == 0:
+        return jsonify({
+            "average_rating_display": "No ratings yet (New Trader)",
+            "numeric_rating": None,
+            "total_reviews": 0,
+            "reviews": []
+        }), 200
+
+    # AC-1 & AC-3: Precise arithmetic mean generation rounded to 1 decimal place
+    scores = [r.rating for r in user_reviews]
+    avg_score = round(sum(scores) / total, 1)
+
+    return jsonify({
+        "average_rating_display": f"⭐ {avg_score:.1f} / 5.0",
+        "numeric_rating": avg_score,
+        "total_reviews": total,
+        "reviews": [r.to_dict() for r in user_reviews]
+    }), 200

@@ -161,3 +161,52 @@ class Transaction(db.Model):
         db.DateTime,
         default=lambda: datetime.now(timezone.utc)
     )
+
+
+class Review(db.Model):
+    """Model representing a peer-to-peer user review after a completed transaction."""
+    __tablename__ = 'reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_id = db.Column(
+        db.Integer,
+        db.ForeignKey('transactions.id'),
+        nullable=False
+    )
+    reviewer_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+    reviewee_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    # AC-3: Composite unique constraint to block duplicate reviewer actions per transaction
+    __table_args__ = (
+        db.UniqueConstraint('transaction_id', 'reviewer_id', name='_tx_reviewer_uc'),
+    )
+
+    def to_dict(self):
+        """Convert review instance to a dictionary layout for clear frontend ingestion."""
+        return {
+            "id": self.id,
+            "transaction_id": self.transaction_id,
+            "reviewer_id": self.reviewer_id,
+            "reviewee_id": self.reviewee_id,
+            "rating": self.rating,
+            "comment": self.comment,
+            "created_at": self.created_at.isoformat()
+        }
+
+
+
+        
