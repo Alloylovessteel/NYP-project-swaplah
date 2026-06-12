@@ -204,3 +204,35 @@ class Review(db.Model):
 
 
     class Review(db.Model):
+    """Review model."""
+
+    __tablename__ = "reviews"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    transaction_id = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    reviewer_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
+    reviewee_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
+    rating = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    comment = db.Column(
+        db.String(500),
+        nullable=True
+    )
