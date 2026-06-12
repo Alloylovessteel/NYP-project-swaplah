@@ -299,3 +299,74 @@ def get_user_reviews(user_id):
         "total_reviews": total,
         "reviews": [r.to_dict() for r in user_reviews]
     }), 200
+
+
+@bp.route('/api/reviews', methods=['POST'])
+def leave_review():
+    """Handles submitting a validated trader evaluation for finished transactions."""
+    data = request.get_json() or {}
+    tx_id = data.get('transaction_id')
+    reviewer_id = data.get('reviewer_id')
+    reviewee_id = data.get('reviewee_id')
+    rating = data.get('rating')
+    comment = data.get('comment', '')
+
+    # Strict type and validation constraints matching teammate formats
+    if not isinstance(rating, int) or not (1 <= rating <= 5):
+        return jsonify({"error": "Rating must be an integer between 1 and 5"}), 400
+    if len(comment) > 500:
+        return jsonify({"error": "Comment must not exceed 500 characters"}), 400
+    if reviewer_id == reviewee_id:
+        return jsonify({"error": "You cannot submit a review for yourself"}), 400
+
+    # Locate the target record using the team's modern explicit lookup method
+    tx_record = db.session.get(Transaction, tx_id)
+    if not tx_record:
+        return jsonify({"error": "Transaction not found or not completed"}), 404
+
+    try:
+        new_review = Review(
+            transaction_id=tx_id, reviewer_id=reviewer_id,
+            reviewee_id=reviewee_id, rating=rating, comment=comment
+        )
+        db.session.add(new_review)
+        db.session.commit()
+        return jsonify({
+            "message": "Review submitted successfully!",
+            "review": new_review.to_dict()
+        }), 201
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Duplicate submission detected for this transaction"}), 409
+
+
+@bp.route('/api/users/<int:user_id>/reviews', methods=['GET'])
+def get_user_reviews(user_id):
+    """Aggregates metrics and returns structured reviews for user profiles."""
+    target_user = db.session.get(User, user_id)
+    if not target_user:
+        return jsonify({"error": "User profile not found"}), 404
+
+    user_reviews = Review.query.filter_by(reviewee_id=user_id).all()
+    total = len(user_reviews)
+
+    # Empty null fallback state design matching standard format layout
+    if total == 0:
+        return jsonify({
+            "average_rating_display": "No ratings yet (New Trader)",
+            "numeric_rating": None,
+            "total_reviews": 0,
+            "reviews": []
+        }), 200
+
+    scores = [r.rating for r in user_reviews]
+    avg_score = round(sum(scores) / total, 1)
+
+    return jsonify({
+        "average_rating_display": f"⭐ {avg_score:.1f} / 5.0",
+        "numeric_rating": avg_score,
+        "total_reviews": total,
+        "reviews": [r.to_dict() for r in user_reviews]
+    }), 200
+
+
