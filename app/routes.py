@@ -184,3 +184,16 @@ def get_reports():
 def reports_page():
     """Render reports management page."""
     return render_template('reports.html')
+
+@listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
+def dismiss_report(report_id):
+    """Dismiss a report."""
+
+    report = db.get_or_404(Report, report_id)
+
+    db.session.delete(report)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Report dismissed successfully"
+    }), 200

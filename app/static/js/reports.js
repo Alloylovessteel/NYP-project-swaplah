@@ -51,7 +51,6 @@ document.addEventListener(
                                 ${report.listing_id}
                             </p>
 
-                            // delete button
                             <p>
                                 <strong>Listing ID:</strong>
                                 ${report.listing_id}
@@ -61,6 +60,12 @@ document.addEventListener(
                                 class="btn btn-danger delete-listing-btn"
                                 data-listing-id="${report.listing_id}">
                                 Remove Listing
+                            </button>
+
+                            <button
+                                class="btn btn-secondary dismiss-report-btn"
+                                data-report-id="${report.id}">
+                                Dismiss Report
                             </button>
                         </div>
                     </div>
@@ -127,6 +132,44 @@ document.addEventListener(
 
                 });
 
+            document
+                .querySelectorAll(".dismiss-report-btn")
+                .forEach(button => {
+
+                    button.addEventListener(
+                        "click",
+                        async () => {
+
+                            const reportId =
+                                button.dataset.reportId;
+
+                            try {
+
+                                const response =
+                                    await fetch(
+                                        `/api/admin/reports/${reportId}`,
+                                        {
+                                            method: "DELETE"
+                                        }
+                                    );
+
+                                const result =
+                                    await response.json();
+
+                                alert(result.message);
+
+                                location.reload();
+
+                            } catch {
+
+                                alert(
+                                    "Failed to dismiss report."
+                                );
+                            }
+                        }
+                    );
+                });
+                
         } catch {
 
             container.innerHTML = `
