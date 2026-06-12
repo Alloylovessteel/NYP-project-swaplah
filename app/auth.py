@@ -125,3 +125,23 @@ def edit_profile():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+    
+
+@auth_bp.route('/api/admin/users', methods=['GET'])
+def get_users():
+    """Return all user accounts."""
+
+    users = User.query.all()
+
+    return jsonify([
+        {
+            "id": user.id,
+            "student_id": user.student_id,
+            "display_name": user.display_name,
+            "email": user.email,
+            "account_status": user.account_status
+        }
+        for user in users
+    ]), 200
+
+

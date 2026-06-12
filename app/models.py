@@ -57,6 +57,45 @@ class Listing(db.Model):
             "seller_id": self.seller_id
         }
     
+class Report(db.Model):
+    """Model representing a reported listing."""
+
+    __tablename__ = 'reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=False
+    )
+
+    listing = db.relationship(
+        'Listing',
+        backref='reports',
+        lazy=True
+    )
+
+    reason = db.Column(db.String(100), nullable=False)
+
+    description = db.Column(db.Text, nullable=False)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    def to_dict(self):
+        """Convert report instance to dictionary for JSON responses."""
+        return {
+            "id": self.id,
+            "listing_id": self.listing_id,
+            "reason": self.reason,
+            "description": self.description,
+            "created_at": self.created_at.isoformat()
+        }
+
+
 class Offer(db.Model):
     """Model representing an offer made on a listing."""
     __tablename__ = 'offers'
