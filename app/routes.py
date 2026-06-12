@@ -197,3 +197,12 @@ def dismiss_report(report_id):
     return jsonify({
         "message": "Report dismissed successfully"
     }), 200
+
+@listings_bp.route('/admin/users')
+def users_page():
+    """Render user management page."""
+    return render_template('users.html')
+
+
+
+
