@@ -50,10 +50,82 @@ document.addEventListener(
                                 <strong>Listing ID:</strong>
                                 ${report.listing_id}
                             </p>
+
+                            // delete button
+                            <p>
+                                <strong>Listing ID:</strong>
+                                ${report.listing_id}
+                            </p>
+
+                            <button
+                                class="btn btn-danger delete-listing-btn"
+                                data-listing-id="${report.listing_id}">
+                                Remove Listing
+                            </button>
                         </div>
                     </div>
                 `
             ).join("");
+
+            document
+                .querySelectorAll(".delete-listing-btn")
+                .forEach(button => {
+
+                    button.addEventListener(
+                        "click",
+                        async () => {
+
+                            const listingId =
+                                button.dataset.listingId;
+
+                            const confirmed =
+                                confirm(
+                                    "Are you sure you want to remove this listing?"
+                                );
+
+                            if (!confirmed) {
+                                return;
+                            }
+
+                            try {
+
+                                const response =
+                                    await fetch(
+                                        `/api/listings/${listingId}`,
+                                        {
+                                            method: "DELETE"
+                                        }
+                                    );
+
+                                const result =
+                                    await response.json();
+
+                                if (response.ok) {
+
+                                    alert(
+                                        result.message
+                                    );
+
+                                    location.reload();
+
+                                } else {
+
+                                    alert(
+                                        result.error ||
+                                        "Failed to remove listing."
+                                    );
+                                }
+
+                            } catch {
+
+                                alert(
+                                    "Unable to remove listing."
+                                );
+                            }
+                        }
+                    );
+
+                });
 
         } catch {
 
