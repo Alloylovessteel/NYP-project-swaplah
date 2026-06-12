@@ -5,9 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+
 class User(db.Model):
     """Model representing a student user."""
     __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.String(20), unique=True, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
@@ -56,7 +58,8 @@ class Listing(db.Model):
             "last_modified": self.last_modified.isoformat(),
             "seller_id": self.seller_id
         }
-    
+
+
 class Report(db.Model):
     """Model representing a reported listing."""
 
@@ -162,6 +165,7 @@ class Transaction(db.Model):
         default=lambda: datetime.now(timezone.utc)
     )
 
+
 class Review(db.Model):
     """Model representing a completed transaction review."""
 
@@ -200,39 +204,4 @@ class Review(db.Model):
     created_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(timezone.utc)
-    )
-
-
-    class Review(db.Model):
-    """Review model."""
-
-    __tablename__ = "reviews"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    transaction_id = db.Column(
-        db.Integer,
-        nullable=False
-    )
-
-    reviewer_id = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id"),
-        nullable=False
-    )
-
-    reviewee_id = db.Column(
-        db.Integer,
-        db.ForeignKey("users.id"),
-        nullable=False
-    )
-
-    rating = db.Column(
-        db.Integer,
-        nullable=False
-    )
-
-    comment = db.Column(
-        db.String(500),
-        nullable=True
     )
