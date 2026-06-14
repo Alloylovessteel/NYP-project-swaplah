@@ -8,4 +8,10 @@ __pycache__/
 
 # Project logs
 AI/*.log
+<<<<<<< HEAD
+=======
+
+*.db
+>>>>>>> ca49bf7ac103847a3ba58c510aa35b5901206a75
+instance/
 instance/
