@@ -1,6 +1,7 @@
 stages:
   - lint
   - test
+  - security
 
 pylint_check:
   stage: lint
@@ -17,4 +18,8 @@ pytest_check:
     - pip install -r requirements.txt
     - python -m pytest tests/unit/
     - python -m pytest tests/api/
-    
+
+include:
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
