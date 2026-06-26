@@ -1,0 +1,98 @@
+{% extends "layout.html" %} {% block content %}
+<div class="row">
+  <!-- Sidebar: Filters -->
+  <div class="col-md-3">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Filters</h5>
+        <hr />
+
+        <!-- Category Filter -->
+        <label class="form-label fw-bold">Category</label>
+        <select class="form-select mb-3" id="categoryFilter">
+          <option value="">All Categories</option>
+          <option value="Textbooks">Textbooks</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Clothing">Clothing</option>
+          <option value="Stationery">Stationery</option>
+        </select>
+
+        <!-- Condition Filter -->
+        <label class="form-label fw-bold">Condition</label>
+        <div class="form-check">
+          <input
+            class="form-check-input condition-checkbox"
+            type="checkbox"
+            value="New"
+            id="condNew"
+          />
+          <label class="form-check-label">New</label>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input condition-checkbox"
+            type="checkbox"
+            value="Like New"
+            id="condLikeNew"
+          />
+          <label class="form-check-label">Like New</label>
+        </div>
+        <div class="form-check">
+          <input
+            class="form-check-input condition-checkbox"
+            type="checkbox"
+            value="Good"
+            id="condGood"
+          />
+          <label class="form-check-label">Good</label>
+        </div>
+        <div class="form-check mb-3">
+          <!-- Added Fair Condition -->
+          <input
+            class="form-check-input condition-checkbox"
+            type="checkbox"
+            value="Fair"
+            id="condFair"
+          />
+          <label class="form-check-label">Fair</label>
+        </div>
+
+        <button class="btn btn-outline-danger btn-sm w-100" id="clearFilters">
+          Clear All
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content: Search & Results -->
+  <div class="col-md-9">
+    <div class="input-group mb-4 shadow-sm">
+      <input
+        type="text"
+        class="form-control"
+        id="searchInput"
+        placeholder="Search for items (e.g. Physics, Calculator...)"
+      />
+      <button class="btn btn-primary" id="searchBtn">Search</button>
+    </div>
+
+    <!-- Grid for items -->
+    <div class="row row-cols-1 row-cols-md-3 g-4" id="listingsContainer">
+      <!-- Loading Spinner -->
+      <div class="text-center w-100 py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Loading marketplace...</p>
+      </div>
+    </div>
+    <!-- Pagination Controls -->
+    <nav class="mt-5">
+      <ul
+        class="pagination justify-content-center"
+        id="paginationContainer"
+      ></ul>
+    </nav>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='js/listings.js') }}"></script>
+{% endblock %}

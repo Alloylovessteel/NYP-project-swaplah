@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h3 class="card-title mb-4">List an Item for Sale</h3>
+
+                <!-- Success/Error Message at the top -->
+                <div id="message" class="mb-3"></div>
+
+                <form id="createListingForm">
+                    <div class="mb-3">
+                        <label class="form-label">Item Title</label>
+                        <input type="text" class="form-control" id="title" required placeholder="e.g. Lab Coat Size L">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="description" rows="3" required placeholder="Describe the item condition, size, etc."></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Price</label>
+                            <input type="text" class="form-control" id="price" required placeholder="e.g. 10.00 or Free">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="category" required>
+                                <option value="Textbooks">Textbooks</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Clothing">Clothing</option>
+                                <option value="Stationery">Stationery</option>
+                                <option value="Lab Equipment">Lab Equipment</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Condition</label>
+                        <select class="form-select" id="condition" required>
+                            <option value="New">New</option>
+                            <option value="Like New">Like New</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Image URL</label>
+                        <input type="url" class="form-control" id="image_url" required placeholder="https://example.com/image.jpg">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Publish Listing</button>
+                    <a href="/marketplace" class="btn btn-link w-100 text-muted mt-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/create_listing.js') }}"></script>
+{% endblock %}

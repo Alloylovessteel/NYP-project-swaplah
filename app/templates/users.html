@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1 class="mb-4">User Accounts</h1>
+
+<div id="usersContainer">
+
+    <div class="text-center">
+        <div class="spinner-border"></div>
+        <p>Loading users...</p>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/users.js') }}"></script>
+{% endblock %}

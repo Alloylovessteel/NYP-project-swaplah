@@ -1,6 +1,7 @@
 """Routes for the Listings management."""
-from flask import Blueprint, request, jsonify
-from .models import db, Listing
+from flask import Blueprint, request, jsonify, render_template
+from .models import db, Listing, Report, User
+
 
 # Create a Blueprint for listings
 listings_bp = Blueprint('listings', __name__)
@@ -20,7 +21,8 @@ def create_listing():
         price=data['price'],
         category=data['category'],
         condition=data['condition'],
-        image_url=data['image_url']
+        image_url=data['image_url'],
+        seller_id=1 # Temporary
     )
 
     try:
@@ -34,10 +36,8 @@ def create_listing():
 @listings_bp.route('/api/listings', methods=['GET'])
 def get_listings():
     """Returns active listings with search, filter, and pagination."""
-    # 1. Base query: only show non-deleted items
     query = Listing.query.filter_by(is_deleted=False)
 
-    # 2. Keyword Search (Title and Description) - Requirement Page 2, C.vii
     search_query = request.args.get('search')
     if search_query:
         query = query.filter(
@@ -45,7 +45,6 @@ def get_listings():
             (Listing.description.ilike(f'%{search_query}%'))
         )
 
-    # 3. Filter by Category and Condition - Requirement Page 2, C.viii
     category_filter = request.args.get('category')
     if category_filter:
         query = query.filter_by(category=category_filter)
@@ -54,10 +53,8 @@ def get_listings():
     if condition_filter:
         query = query.filter_by(condition=condition_filter)
 
-    # 4. Sorting: Newest first - Requirement Page 2, C.vii
     query = query.order_by(Listing.listing_date.desc())
 
-    # 5. Pagination: 10 items per page - Requirement Page 2, C.vi
     page = request.args.get('page', 1, type=int)
     pagination = query.paginate(page=page, per_page=10, error_out=False)
 
@@ -68,22 +65,166 @@ def get_listings():
         "current_page": pagination.page
     }), 200
 
-@listings_bp.route('/api/listings/<listing_id>', methods=['GET'])
-def get_listing_detail(listing_id):
-    """Returns a single listing by ID with seller details."""
-    listing = Listing.query.get_or_404(listing_id)
+@listings_bp.route('/api/listings/<listing_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_single_listing(listing_id):
+    """Handles fetching, updating, and deleting a single listing."""
+    listing = db.get_or_404(Listing, listing_id)
     
-    if listing.is_deleted:
-        return jsonify({"error": "Listing not found"}), 404
+    # 1. GET: Fetch Details
+    if request.method == 'GET':
+        if listing.is_deleted:
+            return jsonify({"error": "Listing not found"}), 404
+        result = listing.to_dict()
+        if listing.seller:
+            result['seller_info'] = {
+                "display_name": listing.seller.display_name,
+                "email": listing.seller.email,
+                "contact_number": listing.seller.contact_number
+            }
+        return jsonify(result), 200
 
-    result = listing.to_dict()
+    # 2. PUT: Update Listing
+    if request.method == 'PUT':
+        if listing.is_deleted:
+            return jsonify({"error": "Cannot edit a deleted listing"}), 404
+        data = request.get_json()
+        fields = ['title', 'description', 'price', 'category', 'condition', 'image_url']
+        for field in fields:
+            if field in data:
+                setattr(listing, field, data[field])
+        db.session.commit()
+        return jsonify(listing.to_dict()), 200
+
+    # 3. DELETE: Soft-delete
+    if request.method == 'DELETE':
+        listing.is_deleted = True
+        db.session.commit()
+        return jsonify({"message": "Listing successfully deleted"}), 200
+
+@listings_bp.route('/marketplace')
+def marketplace_page():
+    """Render the Marketplace HTML page."""
+    return render_template('listings.html')
+
+@listings_bp.route('/create-listing')
+def create_listing_page():
+    """Render the Create Listing HTML page."""
+    return render_template('create_listing.html')
+
+@listings_bp.route('/listings/<listing_id>')
+def listing_detail_page(listing_id):
+    """Render the Listing Detail HTML page."""
+    return render_template('listing_detail.html', listing_id=listing_id)
+
+@listings_bp.route('/edit-listing/<listing_id>')
+def edit_listing_page(listing_id):
+    """Render the Edit Listing HTML page."""
+    return render_template('edit_listing.html', listing_id=listing_id)
+
+# Reports
+@listings_bp.route('/api/reports', methods=['POST'])
+def create_report():
+    """Submit a report for a listing."""
+
+    data = request.get_json()
+
+    required_fields = ['listing_id', 'reason', 'description']
+
+    for field in required_fields:
+        if field not in data or not str(data[field]).strip():
+            return jsonify({
+                "error": f"Field '{field}' is required"
+            }), 400
+
+    listing = Listing.query.filter_by(
+        id=data['listing_id'],
+        is_deleted=False
+    ).first()
+
+    if not listing:
+        return jsonify({
+            "error": "Listing not found"
+        }), 404
+
+    report = Report(
+        listing_id=data['listing_id'],
+        reason=data['reason'],
+        description=data['description']
+    )
+
+    try:
+        db.session.add(report)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Report submitted successfully"
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+
+        return jsonify({
+            "error": "Internal Server Error",
+            "message": str(e)
+        }), 500
     
-    # Requirement Page 2, C.x: Show Seller Name, Email, and Phone
-    if listing.seller:
-        result['seller_info'] = {
-            "display_name": listing.seller.display_name,
-            "email": listing.seller.email,
-            "contact_number": listing.seller.contact_number
-        }
-    
-    return jsonify(result), 200
+@listings_bp.route('/api/admin/reports', methods=['GET'])
+def get_reports():
+    """Return all submitted reports."""
+
+    reports = Report.query.order_by(
+        Report.created_at.desc()
+    ).all()
+
+    return jsonify(
+        [report.to_dict() for report in reports]
+    ), 200
+
+@listings_bp.route('/admin/reports')
+def reports_page():
+    """Render reports management page."""
+    return render_template('reports.html')
+
+@listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
+def dismiss_report(report_id):
+    """Dismiss a report."""
+
+    report = db.get_or_404(Report, report_id)
+
+    db.session.delete(report)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Report dismissed successfully"
+    }), 200
+
+@listings_bp.route('/admin/users')
+def users_page():
+    """Render user management page."""
+    return render_template('users.html')
+
+@listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
+def suspend_user(user_id):
+    """Suspend a user account."""
+
+    user = db.get_or_404(User, user_id)
+
+    user.account_status = "suspended"
+    db.session.commit()
+
+    return jsonify({
+        "message": "User suspended successfully"
+    }), 200
+
+@listings_bp.route('/api/admin/users/<int:user_id>/unsuspend', methods=['PUT'])
+def unsuspend_user(user_id):
+    """Unsuspend a user account."""
+
+    user = db.get_or_404(User, user_id)
+
+    user.account_status = "active"
+    db.session.commit()
+
+    return jsonify({
+        "message": "User unsuspended successfully"
+    }), 200
