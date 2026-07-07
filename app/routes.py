@@ -1,5 +1,5 @@
 """Routes for the Listings management."""
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, session
 from .models import db, Listing, Report, User
 
 
@@ -9,6 +9,9 @@ listings_bp = Blueprint('listings', __name__)
 @listings_bp.route('/api/listings', methods=['POST'])
 def create_listing():
     """Create a new item listing."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
     data = request.get_json()
     required_fields = ['title', 'description', 'price', 'category', 'condition', 'image_url']
     for field in required_fields:
@@ -22,7 +25,7 @@ def create_listing():
         category=data['category'],
         condition=data['condition'],
         image_url=data['image_url'],
-        seller_id=1 # Temporary
+        seller_id=user_id
     )
 
     try:
@@ -87,6 +90,8 @@ def handle_single_listing(listing_id):
     if request.method == 'PUT':
         if listing.is_deleted:
             return jsonify({"error": "Cannot edit a deleted listing"}), 404
+        if listing.seller_id != session.get('user_id'):
+            return jsonify({"error": "Forbidden"}), 403
         data = request.get_json()
         fields = ['title', 'description', 'price', 'category', 'condition', 'image_url']
         for field in fields:
@@ -97,6 +102,8 @@ def handle_single_listing(listing_id):
 
     # 3. DELETE: Soft-delete
     if request.method == 'DELETE':
+        if listing.seller_id != session.get('user_id'):
+            return jsonify({"error": "Forbidden"}), 403
         listing.is_deleted = True
         db.session.commit()
         return jsonify({"message": "Listing successfully deleted"}), 200

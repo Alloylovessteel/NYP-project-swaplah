@@ -1,7 +1,7 @@
 """Unit tests for Listing management (Creation, Search, Filter, Pagination)."""
 import pytest
 from app import create_app, db
-from app.models import Listing
+from app.models import Listing, User
 
 @pytest.fixture
 def client():
@@ -14,10 +14,18 @@ def client():
     with app.test_client() as client:
         with app.app_context():
             db.create_all()
+            user = User(id=1, student_id="1", first_name="A", last_name="B", 
+                        display_name="Irsyad", email="a@nyp.edu.sg", 
+                        contact_number="1", password_hash="hash", account_status="active")
+            db.session.add(user)
+            db.session.commit()
+            with client.session_transaction() as sess:
+                sess['user_id'] = 1
         yield client
 
 # --- CREATION TESTS (TC01, TC02) ---
 def test_create_listing_success(client):
+    login(client)
     payload = {"title": "Physics Book", "description": "d", "price": "10",
                "category": "Books", "condition": "New", "image_url": "t.jpg"}
     response = client.post('/api/listings', json=payload)
@@ -75,3 +83,20 @@ def test_soft_delete_listing(client):
 def test_edit_nonexistent_listing(client):
     response = client.put('/api/listings/invalid-id', json={"title": "New"})
     assert response.status_code == 404
+
+def login(client):
+    with client.session_transaction() as sess:
+        sess['user_id'] = 1
+    
+def test_unauthorized_edit(client):
+    from app import create_app
+
+    with client.application.app_context():
+        listing = Listing(title="Owner Item", description="d", price="1", 
+                          category="C", condition="N", image_url="t.jpg", seller_id=99)
+        db.session.add(listing)
+        db.session.commit()
+        listing_id = listing.id
+
+    response = client.put(f'/api/listings/{listing_id}', json={"title": "Hacked Title"})
+    assert response.status_code == 403
