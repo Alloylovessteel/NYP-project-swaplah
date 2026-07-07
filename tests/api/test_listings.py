@@ -18,3 +18,4 @@ def test_listings_get_api(client):
     response = client.get('/api/listings')
     assert response.status_code == 200
     assert 'listings' in response.json
+
