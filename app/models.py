@@ -5,9 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+
 class User(db.Model):
     """Model representing a student user."""
     __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.String(20), unique=True, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
@@ -56,3 +58,150 @@ class Listing(db.Model):
             "last_modified": self.last_modified.isoformat(),
             "seller_id": self.seller_id
         }
+
+
+class Report(db.Model):
+    """Model representing a reported listing."""
+
+    __tablename__ = 'reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=False
+    )
+
+    listing = db.relationship(
+        'Listing',
+        backref='reports',
+        lazy=True
+    )
+
+    reason = db.Column(db.String(100), nullable=False)
+
+    description = db.Column(db.Text, nullable=False)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    def to_dict(self):
+        """Convert report instance to dictionary for JSON responses."""
+        return {
+            "id": self.id,
+            "listing_id": self.listing_id,
+            "reason": self.reason,
+            "description": self.description,
+            "created_at": self.created_at.isoformat()
+        }
+
+
+class Offer(db.Model):
+    """Model representing an offer made on a listing."""
+    __tablename__ = 'offers'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=False
+    )
+
+    buyer_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    offer_price = db.Column(db.String(20))
+
+    swap_listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=True
+    )
+
+    status = db.Column(
+        db.String(20),
+        default='pending'
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class Transaction(db.Model):
+    """Completed transaction history."""
+    __tablename__ = 'transactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    listing_id = db.Column(
+        db.String(36),
+        db.ForeignKey('listings.id'),
+        nullable=False
+    )
+
+    buyer_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    seller_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    completed_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class Review(db.Model):
+    """Model representing a completed transaction review."""
+
+    __tablename__ = 'reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    transaction_id = db.Column(
+        db.Integer,
+        db.ForeignKey('transactions.id'),
+        nullable=False
+    )
+
+    reviewer_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    reviewee_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    rating = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    comment = db.Column(
+        db.String(500),
+        nullable=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )

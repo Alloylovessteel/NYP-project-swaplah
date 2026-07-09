@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row" id="detailContainer">
+    <!-- Loading Spinner -->
+    <div class="text-center w-100 py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p>Fetching item details...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Pass the listing ID from Flask to JavaScript
+    const LISTING_ID = "{{ listing_id }}";
+</script>
+<script src="{{ url_for('static', filename='js/listing_detail.js') }}"></script>
+{% endblock %}
