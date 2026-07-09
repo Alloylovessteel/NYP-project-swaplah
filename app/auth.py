@@ -65,7 +65,8 @@ def login():
 
     if user.account_status == 'suspended':
         return jsonify({"error": "Your account has been suspended"}), 403
-
+    
+    session.permanent = True
     session['user_id'] = user.id
     return jsonify({"message": "Login successful", "user_id": user.id}), 200
 
