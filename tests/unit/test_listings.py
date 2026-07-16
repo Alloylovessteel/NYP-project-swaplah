@@ -21,11 +21,11 @@ def client():
             db.session.commit()
             with client.session_transaction() as sess:
                 sess['user_id'] = 1
-        yield client
+            yield client
+            db.drop_all()
 
 # --- CREATION TESTS (TC01, TC02) ---
 def test_create_listing_success(client):
-    login(client)
     payload = {"title": "Physics Book", "description": "d", "price": "10",
                "category": "Books", "condition": "New", "image_url": "t.jpg"}
     response = client.post('/api/listings', json=payload)
@@ -89,8 +89,6 @@ def login(client):
         sess['user_id'] = 1
     
 def test_unauthorized_edit(client):
-    from app import create_app
-
     with client.application.app_context():
         listing = Listing(title="Owner Item", description="d", price="1", 
                           category="C", condition="N", image_url="t.jpg", seller_id=99)
@@ -98,5 +96,24 @@ def test_unauthorized_edit(client):
         db.session.commit()
         listing_id = listing.id
 
-    response = client.put(f'/api/listings/{listing_id}', json={"title": "Hacked Title"})
+    response = client.put(f'/api/listings/{listing_id}', json={"title": "Hacked"})
     assert response.status_code == 403
+
+def test_get_listing_detail(client):
+    """Test fetching a listing's detail view, including seller info."""
+    # 1. Create a listing with a seller
+    # We must use the user ID 1 (the one created in your fixture)
+    res = client.post('/api/listings', json={
+        "title": "Detail View Item", "description": "d", "price": "10",
+        "category": "C", "condition": "N", "image_url": "t.jpg"
+    })
+    listing_id = res.json['id']
+
+    # 2. Fetch the detail
+    response = client.get(f'/api/listings/{listing_id}')
+
+    # 3. Assertions
+    assert response.status_code == 200
+    assert response.json['title'] == "Detail View Item"
+    assert 'seller_info' in response.json
+    assert response.json['seller_info']['display_name'] == "Irsyad"
