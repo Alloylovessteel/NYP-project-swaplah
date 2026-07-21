@@ -1,33 +1,28 @@
-"""Entry point for the SwapLah Flask application."""
-from flask import Flask, jsonify
+from flask import Flask
+
 from .models import db
+from .auth import auth_bp
+from .offers import offers_bp
+
 
 def create_app(test_config=None):
-    """Create and configure the Flask app."""
     app = Flask(__name__)
 
-    # Default configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///swaplah.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'dev-secret-key'
-    app.config['PERMANENT_SESSION_LIFETIME'] = 1800
+    app.config.from_mapping(
+        SECRET_KEY="dev",
+        SQLALCHEMY_DATABASE_URI="sqlite:///swaplah.db",
+        SQLALCHEMY_TRACK_MODIFICATIONS=False
+    )
 
     if test_config:
         app.config.update(test_config)
 
     db.init_app(app)
 
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(offers_bp)
+
     with app.app_context():
         db.create_all()
-
-    from .routes import listings_bp
-    from .auth import auth_bp
-    app.register_blueprint(listings_bp)
-    app.register_blueprint(auth_bp)
-
-    @app.route('/api/health', methods=['GET'])
-    def health_check():
-        """Health check endpoint to verify server is running."""
-        return jsonify({"status": "ok"}), 200
 
     return app
