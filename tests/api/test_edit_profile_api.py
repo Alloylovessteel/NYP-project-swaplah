@@ -66,7 +66,10 @@ def test_edit_profile_partial_update_leaves_other_fields_unchanged(client):
 
 def test_edit_profile_updates_password(client):
     login(client)
-    client.put('/api/profile', json={'password': 'NewPass456!'})
+    client.put('/api/profile', json={
+        'password': 'NewPass456!',
+        'current_password': 'OldPass123!'
+    })
 
     with client.application.app_context():
         user = User.query.filter_by(email='mei@nyp.edu.sg').first()
