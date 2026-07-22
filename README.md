@@ -36,13 +36,46 @@ pip install -r requirements.txt
 python run.py
 ```
 
-The app runs at `http://127.0.0.1:5000`.
+The app runs at `http://127.0.0.1:5000`. > **Note:** There is currently no landing page. Start by visiting `/login` or `/marketplace`.
+
+
+| Page | URL |
+|------|-----|
+| Login | `http://127.0.0.1:5000/login` |
+| Register | `http://127.0.0.1:5000/register` |
+| Profile | `http://127.0.0.1:5000/profile` |
+| Marketplace | `http://127.0.0.1:5000/marketplace` |
+| Create Listing | `http://127.0.0.1:5000/create-listing` |
+| Listing Details | `http://127.0.0.1:5000/listings/<listing_id>` |
+| Edit Listing | `http://127.0.0.1:5000/edit-listing/<listing_id>` |
+| Admin Reports | `http://127.0.0.1:5000/admin/reports` |
+| Admin Users | `http://127.0.0.1:5000/admin/users` |
+
+
+### Health Check
+
+Verify the application is running by visiting:
+
+```
+http://127.0.0.1:5000/api/health
+```
+
+A successful response returns:
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+
 
 ### Running tests
 
 ```bash
 python -m pytest tests/unit/
 python -m pytest tests/api/
+python -m pytest
 ```
 
 ### Environment variables
@@ -69,11 +102,20 @@ Handles student registration, authentication, session management, and profile ma
 
 | Method | Endpoint | Description | Auth required |
 |---|---|---|---|
-| POST | `/api/register` | Register a new student account | No |
-| POST | `/api/login` | Log in and start a session | No |
-| POST | `/api/logout` | Clear the current session | No |
-| GET | `/api/profile` | View the logged-in user's profile | Yes |
-| PUT | `/api/profile` | Edit the logged-in user's profile | Yes |
+| GET | `/api/health` | Check application health status | No |
+| GET | `/api/listings` | Retrieve all listings | No |
+| POST | `/api/listings` | Create a new listing | Yes |
+| GET | `/api/listings/<listing_id>` | Retrieve a specific listing | No |
+| PUT | `/api/listings/<listing_id>` | Update a listing | Yes |
+| DELETE | `/api/listings/<listing_id>` | Delete a listing | Yes |
+| POST | `/api/reports` | Submit a report for a listing | Yes |
+| GET | `/api/admin/reports` | View all submitted reports | Yes (Admin) |
+| DELETE | `/api/admin/reports/<report_id>` | Dismiss a report | Yes (Admin) |
+| GET | `/api/admin/users` | View all user accounts | Yes (Admin) |
+| PUT | `/api/admin/users/<int:user_id>/suspend` | Suspend a user account | Yes (Admin) |
+| PUT | `/api/admin/users/<int:user_id>/unsuspend` | Reinstate a suspended user account | Yes (Admin) |
+| POST | `/api/reviews` | Submit a review for a completed transaction | Yes |
+| GET | `/api/users/<int:user_id>/reviews` | View a user's reviews and average rating | No |
 
 ### Business rules
 
