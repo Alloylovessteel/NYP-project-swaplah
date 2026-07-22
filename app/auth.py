@@ -1,10 +1,13 @@
 """Routes for user account management."""
 import re
+import secrets
 from flask import Blueprint, request, jsonify, session, render_template
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User
 
 auth_bp = Blueprint('auth', __name__)
+
+reset_tokens = {}
 
 
 def is_nyp_email(email):
@@ -118,11 +121,59 @@ def edit_profile():
     if 'contact_number' in data:
         user.contact_number = data['contact_number']
     if 'password' in data and data['password']:
+        if not data.get('current_password'):
+            return jsonify({"error": "Current password is required"}), 400
+        if not check_password_hash(user.password_hash, data['current_password']):
+            return jsonify({"error": "Current password is incorrect"}), 400
         user.password_hash = generate_password_hash(data['password'])
 
     try:
         db.session.commit()
         return jsonify({"message": "Profile updated successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+
+
+@auth_bp.route('/api/forgot-password', methods=['POST'])
+def forgot_password():
+    """Generate a reset token for the user."""
+    data = request.get_json()
+    if not data.get('email'):
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=data['email']).first()
+    if not user:
+        return jsonify({"error": "No account found with that email"}), 404
+
+    token = secrets.token_urlsafe(32)
+    reset_tokens[token] = user.id
+    return jsonify({"message": "Reset token generated", "token": token}), 200
+
+
+@auth_bp.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    """Reset password using a valid token."""
+    data = request.get_json()
+    token = data.get('token')
+    new_password = data.get('password')
+
+    if not token or not new_password:
+        return jsonify({"error": "Token and new password are required"}), 400
+
+    user_id = reset_tokens.get(token)
+    if not user_id:
+        return jsonify({"error": "Invalid or expired reset token"}), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.password_hash = generate_password_hash(new_password)
+    try:
+        db.session.commit()
+        del reset_tokens[token]
+        return jsonify({"message": "Password reset successful"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
@@ -160,3 +211,15 @@ def register_page():
 def profile_page():
     """Render the profile page."""
     return render_template('profile.html')
+
+
+@auth_bp.route('/forgot-password')
+def forgot_password_page():
+    """Render the forgot password page."""
+    return render_template('forgot_password.html')
+
+
+@auth_bp.route('/reset-password')
+def reset_password_page():
+    """Render the reset password page."""
+    return render_template('reset_password.html')
