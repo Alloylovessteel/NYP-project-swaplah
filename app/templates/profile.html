@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SwapLah - Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="card-title mb-4 text-center">My Profile</h3>
+                    <div id="error-msg" class="alert alert-danger d-none"></div>
+                    <div id="success-msg" class="alert alert-success d-none"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Student ID</label>
+                        <input type="text" id="student_id" class="form-control" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="text" id="email" class="form-control" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">First Name</label>
+                        <input type="text" id="first_name" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" id="last_name" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" id="display_name" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact Number</label>
+                        <input type="text" id="contact_number" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password (leave blank to keep current)</label>
+                        <input type="password" id="password" class="form-control">
+                    </div>
+                    <button onclick="doUpdate()" class="btn btn-primary w-100 mb-2">Update Profile</button>
+                    <button onclick="doLogout()" class="btn btn-outline-danger w-100">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+async function loadProfile() {
+    const res = await fetch('/api/profile');
+    if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+    }
+    const data = await res.json();
+    document.getElementById('student_id').value = data.student_id;
+    document.getElementById('email').value = data.email;
+    document.getElementById('first_name').value = data.first_name;
+    document.getElementById('last_name').value = data.last_name;
+    document.getElementById('display_name').value = data.display_name;
+    document.getElementById('contact_number').value = data.contact_number;
+}
+
+async function doUpdate() {
+    const errorMsg = document.getElementById('error-msg');
+    const successMsg = document.getElementById('success-msg');
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
+
+    const body = {
+        first_name: document.getElementById('first_name').value,
+        last_name: document.getElementById('last_name').value,
+        display_name: document.getElementById('display_name').value,
+        contact_number: document.getElementById('contact_number').value,
+        password: document.getElementById('password').value
+    };
+
+    const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+        successMsg.textContent = 'Profile updated successfully!';
+        successMsg.classList.remove('d-none');
+    } else {
+        errorMsg.textContent = data.error;
+        errorMsg.classList.remove('d-none');
+    }
+}
+
+async function doLogout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login';
+}
+
+loadProfile();
+</script>
+</body>
+</html>

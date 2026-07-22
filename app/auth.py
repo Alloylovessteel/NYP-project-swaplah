@@ -1,6 +1,6 @@
 """Routes for user account management."""
 import re
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, render_template
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User
 
@@ -65,7 +65,7 @@ def login():
 
     if user.account_status == 'suspended':
         return jsonify({"error": "Your account has been suspended"}), 403
-    
+
     session.permanent = True
     session['user_id'] = user.id
     return jsonify({"message": "Login successful", "user_id": user.id}), 200
@@ -126,14 +126,12 @@ def edit_profile():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
-    
+
 
 @auth_bp.route('/api/admin/users', methods=['GET'])
 def get_users():
     """Return all user accounts."""
-
     users = User.query.all()
-
     return jsonify([
         {
             "id": user.id,
@@ -146,3 +144,19 @@ def get_users():
     ]), 200
 
 
+@auth_bp.route('/login')
+def login_page():
+    """Render the login page."""
+    return render_template('login.html')
+
+
+@auth_bp.route('/register')
+def register_page():
+    """Render the register page."""
+    return render_template('register.html')
+
+
+@auth_bp.route('/profile')
+def profile_page():
+    """Render the profile page."""
+    return render_template('profile.html')
