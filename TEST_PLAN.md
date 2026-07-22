@@ -16,3 +16,18 @@
 | TC10 | Edit Profile | Update display name and contact | User logged in | PUT /api/profile with new display name | Returns 200, profile updated |
 | TC11 | Edit Profile | Email cannot be changed | User logged in | PUT /api/profile with new email | Email remains unchanged |
 | TC12 | Logout | Valid logout | User logged in | POST /api/logout | Returns 200, session cleared |
+
+### Listings Module Test Plan - Irsyad (254573S)
+
+| Test ID | Description of test aim | Preconditions | Test Steps | Expected Results |
+| :--- | :--- | :--- | :--- | :--- |
+| **TC-LS-001** | Create listing successfully | User is authenticated | POST valid JSON to `/api/listings` | HTTP 201 Created |
+| **TC-LS-002** | Reject incomplete listing | None | POST JSON missing mandatory fields | HTTP 400 Bad Request |
+| **TC-LS-003** | Keyword search logic | Items exist in DB | GET `/api/listings?search=Physics` | Returns items matching keyword |
+| **TC-LS-004** | Category filtering | Items exist in DB | GET `/api/listings?category=Electronics` | Returns items of specific category |
+| **TC-LS-005** | Pagination limit (10/page) | >10 items exist | GET `/api/listings?page=1` | Returns exactly 10 items |
+| **TC-LS-006** | Pagination remainder | >10 items exist | GET `/api/listings?page=2` | Returns remaining items |
+| **TC-LS-007** | Update listing successfully | Valid listing exists | PUT valid JSON to `/api/listings/<id>` | HTTP 200 OK & Title updated |
+| **TC-LS-008** | Soft delete functionality | Valid listing exists | DELETE to `/api/listings/<id>` | HTTP 200 OK & Item is hidden |
+| **TC-LS-009** | Prevent edit of non-existent | None | PUT to invalid ID | HTTP 404 Not Found |
+| **TC-LS-010** | Search empty result set | None | GET `/api/listings?search=Unknown` | HTTP 200 OK & Empty list |
