@@ -9,7 +9,7 @@ def client():
     app = create_app({
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        "SECRET_KEY": "test-secret-key"
+        "SECRET_KEY": "test-secret-key",
     })
 
     with app.app_context():
@@ -17,25 +17,38 @@ def client():
         db.create_all()
 
         buyer = User(
-        id=1,
-        email="buyer@example.com",
-        password_hash="test"
-)
+            id=1,
+            student_id="251891J",
+            first_name="Buyer",
+            last_name="Test",
+            display_name="buyer",
+            email="buyer@example.com",
+            contact_number="91234567",
+            password_hash="test",
+            account_status="active",
+        )
 
         seller = User(
-        id=2,
-        email="seller@example.com",
-        password_hash="test"
-)
+            id=2,
+            student_id="251892J",
+            first_name="Seller",
+            last_name="Test",
+            display_name="seller",
+            email="seller@example.com",
+            contact_number="98765432",
+            password_hash="test",
+            account_status="active",
+        )
 
         listing = Listing(
-        title="Test Item",
-        description="Test description",
-        price="50",
-        category="Electronics",
-        condition="Good",
-        seller_id=2
-)
+            title="Test Item",
+            description="Test description",
+            price="50",
+            category="Electronics",
+            condition="Good",
+            image_url="https://example.com/test-item.jpg",
+            seller_id=2,
+        )
 
         db.session.add_all([buyer, seller, listing])
         db.session.commit()
@@ -61,8 +74,8 @@ def test_create_offer_success(client):
         "/api/offers",
         json={
             "listing_id": listing.id,
-            "offer_price": 40
-        }
+            "offer_price": 40,
+        },
     )
 
     assert response.status_code == 201
@@ -83,8 +96,8 @@ def test_create_offer_requires_login(client):
         "/api/offers",
         json={
             "listing_id": listing.id,
-            "offer_price": 40
-        }
+            "offer_price": 40,
+        },
     )
 
     assert response.status_code == 401
@@ -99,7 +112,7 @@ def test_seller_can_accept_offer(client):
         listing_id=listing.id,
         buyer_id=1,
         offer_price=40,
-        status="pending"
+        status="pending",
     )
 
     db.session.add(offer)
@@ -124,7 +137,7 @@ def test_seller_can_reject_offer(client):
         listing_id=listing.id,
         buyer_id=1,
         offer_price=40,
-        status="pending"
+        status="pending",
     )
 
     db.session.add(offer)
