@@ -24,7 +24,7 @@ def client():
             yield client
             db.drop_all()
 
-# --- CREATION TESTS (TC01, TC02) ---
+# --- CREATION TESTS (TC-LS-001, TC-LS-002) ---
 def test_create_listing_success(client):
     payload = {"title": "Physics Book", "description": "d", "price": "10",
                "category": "Books", "condition": "New", "image_url": "t.jpg"}
@@ -35,7 +35,7 @@ def test_create_listing_missing_field(client):
     response = client.post('/api/listings', json={"title": "Incomplete"})
     assert response.status_code == 400
 
-# --- SEARCH & FILTER TESTS (TC03, TC04, TC10) ---
+# --- SEARCH & FILTER TESTS (TC-LS-003, TC-LS-004, TC-LS-010) ---
 def test_get_listings_search(client):
     client.post('/api/listings', json={"title": "Physics Book", "description": "d", "price": "10",
                                        "category": "Books", "condition": "Good", "image_url": "t.jpg"})
@@ -54,7 +54,7 @@ def test_search_no_results(client):
     assert response.status_code == 200
     assert len(response.json['listings']) == 0
 
-# --- PAGINATION TESTS (TC05, TC06) ---
+# --- PAGINATION TESTS (TC-LS-005, TC-LS-006) ---
 def test_pagination_logic(client):
     for i in range(12):
         client.post('/api/listings', json={"title": f"Item {i}", "description": "d", "price": "1",
@@ -64,7 +64,7 @@ def test_pagination_logic(client):
     response2 = client.get('/api/listings?page=2')
     assert len(response2.json['listings']) == 2
 
-# --- EDIT & DELETE TESTS (TC07, TC08, TC09) ---
+# --- EDIT & DELETE TESTS (TC-LS-007, TC-LS-008, TC-LS-009) ---
 def test_update_listing(client):
     res = client.post('/api/listings', json={"title": "Old", "description": "d", "price": "1",
                                              "category": "C", "condition": "N", "image_url": "t.jpg"})
@@ -84,10 +84,7 @@ def test_edit_nonexistent_listing(client):
     response = client.put('/api/listings/invalid-id', json={"title": "New"})
     assert response.status_code == 404
 
-def login(client):
-    with client.session_transaction() as sess:
-        sess['user_id'] = 1
-    
+# --- SECURITY TESTS (TC-SEC-002) ---
 def test_unauthorized_edit(client):
     with client.application.app_context():
         listing = Listing(title="Owner Item", description="d", price="1", 
@@ -99,20 +96,17 @@ def test_unauthorized_edit(client):
     response = client.put(f'/api/listings/{listing_id}', json={"title": "Hacked"})
     assert response.status_code == 403
 
+# --- DETAIL VIEW TESTS ---
 def test_get_listing_detail(client):
     """Test fetching a listing's detail view, including seller info."""
-    # 1. Create a listing with a seller
-    # We must use the user ID 1 (the one created in your fixture)
     res = client.post('/api/listings', json={
         "title": "Detail View Item", "description": "d", "price": "10",
         "category": "C", "condition": "N", "image_url": "t.jpg"
     })
     listing_id = res.json['id']
 
-    # 2. Fetch the detail
     response = client.get(f'/api/listings/{listing_id}')
 
-    # 3. Assertions
     assert response.status_code == 200
     assert response.json['title'] == "Detail View Item"
     assert 'seller_info' in response.json

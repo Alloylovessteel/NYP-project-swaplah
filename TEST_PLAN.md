@@ -19,6 +19,8 @@
 
 ### Listings Module Test Plan - Irsyad (254573S)
 
+### 1. Listings Management Test Plan
+
 | Test ID | Description of test aim | Preconditions | Test Steps | Expected Results |
 | :--- | :--- | :--- | :--- | :--- |
 | **TC-LS-001** | Create listing successfully | User is authenticated | POST valid JSON to `/api/listings` | HTTP 201 Created |
@@ -31,3 +33,10 @@
 | **TC-LS-008** | Soft delete functionality | Valid listing exists | DELETE to `/api/listings/<id>` | HTTP 200 OK & Item is hidden |
 | **TC-LS-009** | Prevent edit of non-existent | None | PUT to invalid ID | HTTP 404 Not Found |
 | **TC-LS-010** | Search empty result set | None | GET `/api/listings?search=Unknown` | HTTP 200 OK & Empty list |
+
+### 2. Listings Security & Authorization Test Plan
+
+| Test ID | Description of test aim | Preconditions | Test Steps | Expected Results |
+| :--- | :--- | :--- | :--- | :--- |
+| **TC-SEC-001** | Prevent unauthenticated listing creation | User is logged out | POST valid JSON to `/api/listings` | HTTP 401 Unauthorized |
+| **TC-SEC-002** | Prevent unauthorized listing modification | User A logged in, Item owned by User B | PUT changes to `/api/listings/<user_b_item_id>` | HTTP 403 Forbidden |
