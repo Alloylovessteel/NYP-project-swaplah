@@ -1,410 +1,344 @@
-"""Tests for SwapLah offers and transactions routes."""
+from flask import Blueprint, jsonify, request, session
 
-import pytest
-
-from app import create_app
-from app.models import db, User, Listing, Offer, Transaction
+from app.models import db, Listing, Offer, Transaction
 
 
-@pytest.fixture
-def app():
-    """Create a fresh in-memory application for each test."""
-    test_app = create_app({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-        "SECRET_KEY": "test-secret-key"
-    })
-
-    with test_app.app_context():
-        db.drop_all()
-        db.create_all()
-
-        seller = User(
-            student_id="240000A",
-            first_name="Test",
-            last_name="Seller",
-            display_name="Seller",
-            email="seller@mymail.nyp.edu.sg",
-            contact_number="90000001",
-            password_hash="test"
-        )
-
-        buyer = User(
-            student_id="240001B",
-            first_name="Test",
-            last_name="Buyer",
-            display_name="Buyer",
-            email="buyer@mymail.nyp.edu.sg",
-            contact_number="90000002",
-            password_hash="test"
-        )
-
-        second_buyer = User(
-            student_id="240002C",
-            first_name="Second",
-            last_name="Buyer",
-            display_name="Buyer Two",
-            email="buyer2@mymail.nyp.edu.sg",
-            contact_number="90000003",
-            password_hash="test"
-        )
-
-        db.session.add_all([seller, buyer, second_buyer])
-        db.session.commit()
-
-        target_listing = Listing(
-            title="Mechanical Keyboard",
-            description="Working keyboard in good condition",
-            price="50",
-            category="Electronics",
-            condition="Good",
-            image_url="https://example.com/keyboard.jpg",
-            seller_id=seller.id
-        )
-
-        swap_listing = Listing(
-            title="Gaming Mouse",
-            description="Mouse offered as a swap",
-            price="Swap Only",
-            category="Electronics",
-            condition="Like New",
-            image_url="https://example.com/mouse.jpg",
-            seller_id=buyer.id
-        )
-
-        db.session.add_all([target_listing, swap_listing])
-        db.session.commit()
-
-        test_app.config["SELLER_ID"] = seller.id
-        test_app.config["BUYER_ID"] = buyer.id
-        test_app.config["SECOND_BUYER_ID"] = second_buyer.id
-        test_app.config["TARGET_LISTING_ID"] = target_listing.id
-        test_app.config["SWAP_LISTING_ID"] = swap_listing.id
-
-        yield test_app
-
-        db.session.remove()
-        db.drop_all()
+offers_bp = Blueprint("offers", __name__)
 
 
-@pytest.fixture
-def client(app):
-    """Return the Flask test client."""
-    return app.test_client()
+def get_logged_in_user_id():
+    """Return the logged-in user's ID from the Flask session."""
+    return session.get("user_id")
 
 
-def login_as(client, user_id):
-    """Place a user ID directly into the test session."""
-    with client.session_transaction() as test_session:
-        test_session["user_id"] = user_id
+@offers_bp.route("/api/offers", methods=["POST"])
+def create_offer():
+    """Create a price offer, swap offer, or both for a listing."""
 
+    buyer_id = get_logged_in_user_id()
 
-def test_create_price_offer_success(client, app):
-    """A buyer can submit a price offer."""
-    login_as(client, app.config["BUYER_ID"])
+    if not buyer_id:
+        return jsonify({"error": "You must be logged in"}), 401
 
-    response = client.post(
-        "/api/offers",
-        json={
-            "listing_id": app.config["TARGET_LISTING_ID"],
-            "offer_price": "45"
-        }
+    data = request.get_json(silent=True) or {}
+
+    listing_id = data.get("listing_id")
+    offer_price = data.get("offer_price")
+    swap_listing_id = data.get("swap_listing_id")
+
+    if not listing_id:
+        return jsonify({"error": "listing_id is required"}), 400
+
+    listing = Listing.query.get(listing_id)
+
+    if not listing:
+        return jsonify({"error": "Listing not found"}), 404
+
+    if listing.seller_id == buyer_id:
+        return jsonify(
+            {"error": "You cannot make an offer on your own listing"}
+        ), 400
+
+    if offer_price is None and not swap_listing_id:
+        return jsonify(
+            {"error": "Provide an offer price or a swap listing"}
+        ), 400
+
+    if offer_price is not None:
+        try:
+            offer_price = float(offer_price)
+        except (TypeError, ValueError):
+            return jsonify(
+                {"error": "offer_price must be a valid number"}
+            ), 400
+
+        if offer_price <= 0:
+            return jsonify(
+                {"error": "offer_price must be greater than 0"}
+            ), 400
+
+    if swap_listing_id:
+        swap_listing = Listing.query.get(swap_listing_id)
+
+        if not swap_listing:
+            return jsonify({"error": "Swap listing not found"}), 404
+
+        if swap_listing.seller_id != buyer_id:
+            return jsonify(
+                {"error": "You can only offer one of your own listings"}
+            ), 403
+
+        if swap_listing.id == listing.id:
+            return jsonify(
+                {"error": "A listing cannot be swapped for itself"}
+            ), 400
+
+    existing_offer = Offer.query.filter_by(
+        listing_id=listing_id,
+        buyer_id=buyer_id,
+        status="pending",
+    ).first()
+
+    if existing_offer:
+        return jsonify(
+            {"error": "You already have a pending offer for this listing"}
+        ), 409
+
+    offer = Offer(
+        listing_id=listing_id,
+        buyer_id=buyer_id,
+        offer_price=offer_price,
+        swap_listing_id=swap_listing_id,
+        status="pending",
     )
 
-    assert response.status_code == 201
-
-    data = response.get_json()
-
-    assert data["message"] == "Offer submitted successfully"
-    assert data["offer"]["offer_price"] == "45"
-    assert data["offer"]["status"] == "pending"
-
-    with app.app_context():
-        offer = Offer.query.first()
-
-        assert offer is not None
-        assert offer.buyer_id == app.config["BUYER_ID"]
-        assert offer.offer_price == "45"
-
-
-def test_create_swap_offer_success(client, app):
-    """A buyer can submit one of their listings as a swap."""
-    login_as(client, app.config["BUYER_ID"])
-
-    response = client.post(
-        "/api/offers",
-        json={
-            "listing_id": app.config["TARGET_LISTING_ID"],
-            "swap_listing_id": app.config["SWAP_LISTING_ID"]
-        }
-    )
-
-    assert response.status_code == 201
-
-    data = response.get_json()
-
-    assert data["offer"]["swap_listing_id"] == (
-        app.config["SWAP_LISTING_ID"]
-    )
-
-    assert data["offer"]["offer_price"] is None
-
-
-def test_cannot_offer_on_own_listing(client, app):
-    """A seller cannot submit an offer on their own listing."""
-    login_as(client, app.config["SELLER_ID"])
-
-    response = client.post(
-        "/api/offers",
-        json={
-            "listing_id": app.config["TARGET_LISTING_ID"],
-            "offer_price": "40"
-        }
-    )
-
-    assert response.status_code == 400
-
-    assert response.get_json()["error"] == (
-        "You cannot make an offer on your own listing"
-    )
-
-
-def test_unauthorized_user_cannot_create_offer(client, app):
-    """A logged-out user cannot submit an offer."""
-    response = client.post(
-        "/api/offers",
-        json={
-            "listing_id": app.config["TARGET_LISTING_ID"],
-            "offer_price": "40"
-        }
-    )
-
-    assert response.status_code == 401
-    assert response.get_json()["error"] == "Unauthorized"
-
-
-def test_offer_requires_price_or_swap(client, app):
-    """An offer must contain a proposed price or swap listing."""
-    login_as(client, app.config["BUYER_ID"])
-
-    response = client.post(
-        "/api/offers",
-        json={
-            "listing_id": app.config["TARGET_LISTING_ID"]
-        }
-    )
-
-    assert response.status_code == 400
-
-    assert response.get_json()["error"] == (
-        "Provide either offer_price or swap_listing_id"
-    )
-
-
-def test_seller_can_view_pending_offers(client, app):
-    """The listing seller can view pending offers."""
-    with app.app_context():
-        offer = Offer(
-            listing_id=app.config["TARGET_LISTING_ID"],
-            buyer_id=app.config["BUYER_ID"],
-            offer_price="45",
-            status="pending"
-        )
-
+    try:
         db.session.add(offer)
         db.session.commit()
 
-    login_as(client, app.config["SELLER_ID"])
+        return jsonify(
+            {
+                "message": "Offer created successfully",
+                "offer": serialize_offer(offer),
+            }
+        ), 201
 
-    response = client.get(
-        f"/api/listings/{app.config['TARGET_LISTING_ID']}/offers"
+    except Exception:
+        db.session.rollback()
+
+        return jsonify(
+            {"error": "Unable to create offer"}
+        ), 500
+
+
+@offers_bp.route(
+    "/api/listings/<string:listing_id>/offers",
+    methods=["GET"],
+)
+def get_listing_offers(listing_id):
+    """Return all offers for a listing owned by the logged-in seller."""
+
+    seller_id = get_logged_in_user_id()
+
+    if not seller_id:
+        return jsonify({"error": "You must be logged in"}), 401
+
+    listing = Listing.query.get(listing_id)
+
+    if not listing:
+        return jsonify({"error": "Listing not found"}), 404
+
+    if listing.seller_id != seller_id:
+        return jsonify(
+            {"error": "Only the listing owner can view these offers"}
+        ), 403
+
+    offers = (
+        Offer.query
+        .filter_by(listing_id=listing_id)
+        .order_by(Offer.created_at.desc())
+        .all()
     )
 
-    assert response.status_code == 200
-
-    data = response.get_json()
-
-    assert len(data["offers"]) == 1
-    assert data["offers"][0]["offer_price"] == "45"
-    assert data["offers"][0]["status"] == "pending"
-
-
-def test_buyer_cannot_view_seller_pending_offers(client, app):
-    """A buyer cannot view offers for another user's listing."""
-    login_as(client, app.config["BUYER_ID"])
-
-    response = client.get(
-        f"/api/listings/{app.config['TARGET_LISTING_ID']}/offers"
-    )
-
-    assert response.status_code == 403
-
-    assert response.get_json()["error"] == (
-        "Only the listing seller can view its offers"
-    )
+    return jsonify(
+        {
+            "listing_id": listing_id,
+            "offers": [serialize_offer(offer) for offer in offers],
+        }
+    ), 200
 
 
-def test_seller_can_reject_offer(client, app):
-    """A seller can reject a pending offer."""
-    with app.app_context():
-        offer = Offer(
-            listing_id=app.config["TARGET_LISTING_ID"],
-            buyer_id=app.config["BUYER_ID"],
-            offer_price="45",
-            status="pending"
-        )
+@offers_bp.route(
+    "/api/offers/<int:offer_id>/accept",
+    methods=["POST"],
+)
+def accept_offer(offer_id):
+    """Accept an offer and automatically reject competing offers."""
 
-        db.session.add(offer)
-        db.session.commit()
+    seller_id = get_logged_in_user_id()
 
-        offer_id = offer.id
+    if not seller_id:
+        return jsonify({"error": "You must be logged in"}), 401
 
-    login_as(client, app.config["SELLER_ID"])
+    offer = Offer.query.get(offer_id)
 
-    response = client.post(
-        f"/api/offers/{offer_id}/reject"
-    )
+    if not offer:
+        return jsonify({"error": "Offer not found"}), 404
 
-    assert response.status_code == 200
-    assert response.get_json()["offer"]["status"] == "rejected"
+    listing = Listing.query.get(offer.listing_id)
 
-    with app.app_context():
-        rejected_offer = db.session.get(Offer, offer_id)
-        assert rejected_offer.status == "rejected"
+    if not listing:
+        return jsonify({"error": "Listing not found"}), 404
 
+    if listing.seller_id != seller_id:
+        return jsonify(
+            {"error": "Only the listing owner can accept this offer"}
+        ), 403
 
-def test_accept_offer_creates_transaction(client, app):
-    """Accepting an offer creates a transaction."""
-    with app.app_context():
-        offer = Offer(
-            listing_id=app.config["TARGET_LISTING_ID"],
-            buyer_id=app.config["BUYER_ID"],
-            offer_price="45",
-            status="pending"
-        )
+    if offer.status != "pending":
+        return jsonify(
+            {"error": "Only pending offers can be accepted"}
+        ), 400
 
-        db.session.add(offer)
-        db.session.commit()
+    existing_transaction = Transaction.query.filter_by(
+        listing_id=listing.id
+    ).first()
 
-        offer_id = offer.id
+    if existing_transaction:
+        return jsonify(
+            {"error": "A transaction already exists for this listing"}
+        ), 409
 
-    login_as(client, app.config["SELLER_ID"])
+    try:
+        offer.status = "accepted"
 
-    response = client.post(
-        f"/api/offers/{offer_id}/accept"
-    )
+        competing_offers = Offer.query.filter(
+            Offer.listing_id == listing.id,
+            Offer.id != offer.id,
+            Offer.status == "pending",
+        ).all()
 
-    assert response.status_code == 200
+        for competing_offer in competing_offers:
+            competing_offer.status = "rejected"
 
-    data = response.get_json()
-
-    assert data["offer"]["status"] == "accepted"
-    assert data["transaction"]["buyer_id"] == (
-        app.config["BUYER_ID"]
-    )
-
-    assert data["transaction"]["seller_id"] == (
-        app.config["SELLER_ID"]
-    )
-
-    with app.app_context():
-        transaction = Transaction.query.first()
-        assert transaction is not None
-
-
-def test_accepting_offer_auto_rejects_competing_offers(client, app):
-    """Accepting one offer rejects other pending offers."""
-    with app.app_context():
-        accepted_offer = Offer(
-            listing_id=app.config["TARGET_LISTING_ID"],
-            buyer_id=app.config["BUYER_ID"],
-            offer_price="45",
-            status="pending"
-        )
-
-        competing_offer = Offer(
-            listing_id=app.config["TARGET_LISTING_ID"],
-            buyer_id=app.config["SECOND_BUYER_ID"],
-            offer_price="47",
-            status="pending"
-        )
-
-        db.session.add_all([
-            accepted_offer,
-            competing_offer
-        ])
-
-        db.session.commit()
-
-        accepted_offer_id = accepted_offer.id
-        competing_offer_id = competing_offer.id
-
-    login_as(client, app.config["SELLER_ID"])
-
-    response = client.post(
-        f"/api/offers/{accepted_offer_id}/accept"
-    )
-
-    assert response.status_code == 200
-
-    with app.app_context():
-        accepted_offer = db.session.get(
-            Offer,
-            accepted_offer_id
-        )
-
-        competing_offer = db.session.get(
-            Offer,
-            competing_offer_id
-        )
-
-        assert accepted_offer.status == "accepted"
-        assert competing_offer.status == "rejected"
-
-
-def test_buyer_can_view_transaction_history(client, app):
-    """A buyer can view transactions involving them."""
-    with app.app_context():
         transaction = Transaction(
-            listing_id=app.config["TARGET_LISTING_ID"],
-            buyer_id=app.config["BUYER_ID"],
-            seller_id=app.config["SELLER_ID"]
+            listing_id=listing.id,
+            buyer_id=offer.buyer_id,
+            seller_id=listing.seller_id,
         )
 
         db.session.add(transaction)
         db.session.commit()
 
-    login_as(client, app.config["BUYER_ID"])
+        return jsonify(
+            {
+                "message": "Offer accepted successfully",
+                "offer": serialize_offer(offer),
+                "transaction": serialize_transaction(transaction),
+            }
+        ), 200
 
-    response = client.get("/api/transactions")
+    except Exception:
+        db.session.rollback()
 
-    assert response.status_code == 200
-
-    data = response.get_json()
-
-    assert len(data["transactions"]) == 1
-
-    assert data["transactions"][0]["buyer_id"] == (
-        app.config["BUYER_ID"]
-    )
+        return jsonify(
+            {"error": "Unable to accept offer"}
+        ), 500
 
 
-def test_unrelated_user_does_not_see_transaction(client, app):
-    """Users only see transactions involving themselves."""
-    with app.app_context():
-        transaction = Transaction(
-            listing_id=app.config["TARGET_LISTING_ID"],
-            buyer_id=app.config["BUYER_ID"],
-            seller_id=app.config["SELLER_ID"]
-        )
+@offers_bp.route(
+    "/api/offers/<int:offer_id>/reject",
+    methods=["POST"],
+)
+def reject_offer(offer_id):
+    """Reject a pending offer."""
 
-        db.session.add(transaction)
+    seller_id = get_logged_in_user_id()
+
+    if not seller_id:
+        return jsonify({"error": "You must be logged in"}), 401
+
+    offer = Offer.query.get(offer_id)
+
+    if not offer:
+        return jsonify({"error": "Offer not found"}), 404
+
+    listing = Listing.query.get(offer.listing_id)
+
+    if not listing:
+        return jsonify({"error": "Listing not found"}), 404
+
+    if listing.seller_id != seller_id:
+        return jsonify(
+            {"error": "Only the listing owner can reject this offer"}
+        ), 403
+
+    if offer.status != "pending":
+        return jsonify(
+            {"error": "Only pending offers can be rejected"}
+        ), 400
+
+    try:
+        offer.status = "rejected"
         db.session.commit()
 
-    login_as(client, app.config["SECOND_BUYER_ID"])
+        return jsonify(
+            {
+                "message": "Offer rejected successfully",
+                "offer": serialize_offer(offer),
+            }
+        ), 200
 
-    response = client.get("/api/transactions")
+    except Exception:
+        db.session.rollback()
 
-    assert response.status_code == 200
-    assert response.get_json()["transactions"] == []
+        return jsonify(
+            {"error": "Unable to reject offer"}
+        ), 500
+
+
+@offers_bp.route("/api/transactions", methods=["GET"])
+def get_transactions():
+    """Return transactions involving the logged-in user."""
+
+    user_id = get_logged_in_user_id()
+
+    if not user_id:
+        return jsonify({"error": "You must be logged in"}), 401
+
+    transactions = (
+        Transaction.query
+        .filter(
+            (Transaction.buyer_id == user_id)
+            | (Transaction.seller_id == user_id)
+        )
+        .order_by(Transaction.completed_at.desc())
+        .all()
+    )
+
+    return jsonify(
+        {
+            "transactions": [
+                serialize_transaction(transaction)
+                for transaction in transactions
+            ]
+        }
+    ), 200
+
+
+def serialize_offer(offer):
+    """Convert an Offer object into JSON-safe data."""
+
+    return {
+        "id": offer.id,
+        "listing_id": offer.listing_id,
+        "buyer_id": offer.buyer_id,
+        "offer_price": (
+            float(offer.offer_price)
+            if offer.offer_price is not None
+            else None
+        ),
+        "swap_listing_id": offer.swap_listing_id,
+        "status": offer.status,
+        "created_at": (
+            offer.created_at.isoformat()
+            if offer.created_at
+            else None
+        ),
+    }                                                                                               
+
+
+def serialize_transaction(transaction):
+    """Convert a Transaction object into JSON-safe data."""
+
+    return {
+        "id": transaction.id,
+        "listing_id": transaction.listing_id,
+        "buyer_id": transaction.buyer_id,
+        "seller_id": transaction.seller_id,
+        "completed_at": (
+            transaction.completed_at.isoformat()
+            if transaction.completed_at
+            else None
+        ),
+    }
