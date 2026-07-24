@@ -1,4 +1,5 @@
 """Script to seed the database with realistic sample data for testing."""
+from werkzeug.security import generate_password_hash
 from app import create_app, db
 from app.models import Listing, User
 
@@ -11,18 +12,19 @@ def seed_data():
         db.drop_all()
         db.create_all()
 
-        # 2. Create Multiple Users (Now including required first/last name and hash)
-        # Note: I'm adding dummy password hashes since Auth is now part of your code
+        # 2. Create Multiple Users with a real working password hash ("password123")
+        valid_password_hash = generate_password_hash("password123")
+
         users = [
             User(student_id="254573S", first_name="Muhammad", last_name="Irsyad", 
                  display_name="Irsyad", email="254573S@mymail.nyp.edu.sg", 
-                 contact_number="91234567", password_hash="dummy_hash", account_status="active"),
+                 contact_number="91234567", password_hash=valid_password_hash, account_status="active"),
             User(student_id="251111A", first_name="Shamreen", last_name="Student", 
                  display_name="Shamreen", email="shamreen@mymail.nyp.edu.sg", 
-                 contact_number="88887777", password_hash="dummy_hash", account_status="active"),
+                 contact_number="88887777", password_hash=valid_password_hash, account_status="active"),
             User(student_id="252222B", first_name="Ashlyn", last_name="Student", 
                  display_name="Ashlyn", email="ashlyn@mymail.nyp.edu.sg", 
-                 contact_number="90001111", password_hash="dummy_hash", account_status="active")
+                 contact_number="90001111", password_hash=valid_password_hash, account_status="active")
         ]
         db.session.add_all(users)
         db.session.commit()
