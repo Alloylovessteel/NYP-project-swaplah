@@ -1,7 +1,7 @@
 """Review routes."""
 
 from flask import Blueprint, request, jsonify, session, render_template
-
+from .auth import login_required_redirect
 from .models import db, Review, Transaction
 from .review_service import (
     validate_rating,
@@ -167,6 +167,7 @@ def get_pending_reviews():
 
 
 @review_bp.route("/transaction-history")
+@login_required_redirect
 def transaction_history_page():
     """Render the transaction history / reviews page."""
     return render_template("transaction_history.html")

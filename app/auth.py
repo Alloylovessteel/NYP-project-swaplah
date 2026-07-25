@@ -1,7 +1,8 @@
 """Routes for user account management."""
 import re
 import secrets
-from flask import Blueprint, request, jsonify, session, render_template
+from functools import wraps
+from flask import Blueprint, request, jsonify, session, render_template, redirect
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User
 
@@ -14,6 +15,35 @@ def is_nyp_email(email):
     """Check if email is a valid NYP email."""
     pattern = r'^[a-zA-Z0-9._%+-]+@(nyp\.edu\.sg|mymail\.nyp\.edu\.sg)$'
     return re.match(pattern, email) is not None
+
+
+def admin_required(f):
+    """Decorator to check if user is an admin."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        if not user.is_admin:
+            return jsonify({"error": "Forbidden - Admin access required"}), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def login_required_redirect(f):
+    """Decorator to redirect unauthenticated users to login page."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_id = session.get('user_id')
+        if not user_id:
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @auth_bp.route('/api/register', methods=['POST'])
@@ -180,6 +210,7 @@ def reset_password():
 
 
 @auth_bp.route('/api/admin/users', methods=['GET'])
+@admin_required
 def get_users():
     """Return all user accounts."""
     users = User.query.all()
@@ -189,7 +220,8 @@ def get_users():
             "student_id": user.student_id,
             "display_name": user.display_name,
             "email": user.email,
-            "account_status": user.account_status
+            "account_status": user.account_status,
+            "is_admin": user.is_admin
         }
         for user in users
     ]), 200

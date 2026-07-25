@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (response.ok) {
             messageDiv.innerHTML = `<div class="alert alert-success">Update successful! Redirecting...</div>`;
             setTimeout(() => window.location.href = `/listings/${LISTING_ID}`, 2000);
+        } else {
+            const err = await response.json();
+            messageDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.error}</div>`;
         }
     });
 
@@ -47,6 +50,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const response = await fetch(`/api/listings/${LISTING_ID}`, { method: 'DELETE' });
         if (response.ok) {
             window.location.href = '/marketplace';
+        } else {
+            const err = await response.json();
+            messageDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.error}</div>`;
         }
     });
 });

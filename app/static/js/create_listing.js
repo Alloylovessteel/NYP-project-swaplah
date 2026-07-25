@@ -20,8 +20,7 @@ document.getElementById('createListingForm').addEventListener('submit', async (e
 
         if (response.ok) {
             messageDiv.innerHTML = `<div class="alert alert-success">Listing created! Redirecting to marketplace...</div>`;
-            // Scroll to top so they see the message
-            window.scrollTo(0, 0); 
+            window.scrollTo(0, 0);
             setTimeout(() => window.location.href = '/marketplace', 2000);
         } else {
             const err = await response.json();
