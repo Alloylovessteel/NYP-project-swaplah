@@ -126,6 +126,7 @@ def handle_single_listing(listing_id):
         return jsonify({"message": "Listing successfully deleted"}), 200
 
 @listings_bp.route('/marketplace')
+@login_required_redirect
 def marketplace_page():
     """Render the Marketplace HTML page."""
     return render_template('listings.html')
@@ -137,6 +138,7 @@ def create_listing_page():
     return render_template('create_listing.html')
 
 @listings_bp.route('/listings/<listing_id>')
+@login_required_redirect
 def listing_detail_page(listing_id):
     """Render the Listing Detail HTML page."""
     return render_template('listing_detail.html', listing_id=listing_id)
@@ -214,7 +216,11 @@ def get_reports():
 @admin_required
 def reports_page():
     """Render reports management page."""
-    return render_template('reports.html')
+
+    return render_template(
+        'reports.html',
+        is_admin=True
+    )
 
 @listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
 @admin_required
@@ -234,7 +240,11 @@ def dismiss_report(report_id):
 @admin_required
 def users_page():
     """Render user management page."""
-    return render_template('users.html')
+
+    return render_template(
+        'users.html',
+        is_admin=True
+    )
 
 @listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
 @admin_required
