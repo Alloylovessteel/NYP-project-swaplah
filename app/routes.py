@@ -1,172 +1,237 @@
-"""Review routes."""
-
-from flask import Blueprint, request, jsonify, session, render_template
-
-from .models import db, Review, Transaction
-from .review_service import (
-    validate_rating,
-    validate_comment,
-    calculate_average_rating,
-    review_exists,
-    get_counterpart_id
-)
-
-review_bp = Blueprint("reviews", __name__)
+"""Routes for the Listings management."""
+from flask import Blueprint, request, jsonify, render_template, session
+from .models import db, Listing, Report, User
 
 
-@review_bp.route("/api/reviews", methods=["POST"])
-def create_review():
-    """Create a review for the other party on a completed transaction.
+# Create a Blueprint for listings
+listings_bp = Blueprint('listings', __name__)
 
-    The reviewer is always taken from the session (not the request body)
-    so a user cannot post a review pretending to be someone else. The
-    reviewee is validated against the transaction's buyer/seller so a
-    review can only be left for the actual counterpart on that deal.
-    """
-    reviewer_id = session.get("user_id")
-    if not reviewer_id:
+@listings_bp.route('/api/listings', methods=['POST'])
+def create_listing():
+    """Create a new item listing."""
+    user_id = session.get('user_id')
+    if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json()
+    required_fields = ['title', 'description', 'price', 'category', 'condition', 'image_url']
+    for field in required_fields:
+        if field not in data or not str(data[field]).strip():
+            return jsonify({"error": f"Field '{field}' is required"}), 400
 
-    data = request.get_json(silent=True) or {}
-
-    transaction_id = data.get("transaction_id")
-    if not transaction_id:
-        return jsonify({"error": "transaction_id is required"}), 400
-
-    transaction = Transaction.query.get(transaction_id)
-    if not transaction:
-        return jsonify({"error": "Transaction not found"}), 404
-
-    expected_reviewee_id = get_counterpart_id(transaction, reviewer_id)
-    if expected_reviewee_id is None:
-        return jsonify({
-            "error": "You are not a participant in this transaction"
-        }), 403
-
-    reviewee_id = data.get("reviewee_id", expected_reviewee_id)
-    if reviewee_id != expected_reviewee_id:
-        return jsonify({
-            "error": "reviewee_id does not match the other party on this transaction"
-        }), 400
-
-    rating = data.get("rating")
-    comment = data.get("comment")
-
-    valid, error = validate_rating(rating)
-    if not valid:
-        return jsonify({"error": error}), 400
-
-    valid, error = validate_comment(comment)
-    if not valid:
-        return jsonify({"error": error}), 400
-
-    if review_exists(Review, transaction_id, reviewer_id):
-        return jsonify({
-            "error": "Review already exists"
-        }), 400
-
-    review = Review(
-        transaction_id=transaction_id,
-        reviewer_id=reviewer_id,
-        reviewee_id=reviewee_id,
-        rating=rating,
-        comment=comment
+    new_listing = Listing(
+        title=data['title'],
+        description=data['description'],
+        price=data['price'],
+        category=data['category'],
+        condition=data['condition'],
+        image_url=data['image_url'],
+        seller_id=user_id
     )
 
     try:
-        db.session.add(review)
+        db.session.add(new_listing)
+        db.session.commit()
+        return jsonify(new_listing.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+
+@listings_bp.route('/api/listings', methods=['GET'])
+def get_listings():
+    """Returns active listings with search, filter, and pagination."""
+    query = Listing.query.filter_by(is_deleted=False)
+
+    search_query = request.args.get('search')
+    if search_query:
+        query = query.filter(
+            (Listing.title.ilike(f'%{search_query}%')) | 
+            (Listing.description.ilike(f'%{search_query}%'))
+        )
+
+    category_filter = request.args.get('category')
+    if category_filter:
+        query = query.filter_by(category=category_filter)
+        
+    condition_filter = request.args.get('condition')
+    if condition_filter:
+        query = query.filter_by(condition=condition_filter)
+
+    query = query.order_by(Listing.listing_date.desc())
+
+    page = request.args.get('page', 1, type=int)
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+
+    return jsonify({
+        "listings": [item.to_dict() for item in pagination.items],
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "current_page": pagination.page
+    }), 200
+
+@listings_bp.route('/api/listings/<listing_id>', methods=['GET', 'PUT', 'DELETE'])
+def handle_single_listing(listing_id):
+    """Handles fetching, updating, and deleting a single listing."""
+    listing = db.get_or_404(Listing, listing_id)
+    
+    # 1. GET: Fetch Details
+    if request.method == 'GET':
+        if listing.is_deleted:
+            return jsonify({"error": "Listing not found"}), 404
+        result = listing.to_dict()
+        if listing.seller:
+            result['seller_info'] = {
+                "display_name": listing.seller.display_name,
+                "email": listing.seller.email,
+                "contact_number": listing.seller.contact_number
+            }
+        return jsonify(result), 200
+
+    # 2. PUT: Update Listing
+    if request.method == 'PUT':
+        if listing.is_deleted:
+            return jsonify({"error": "Cannot edit a deleted listing"}), 404
+        if listing.seller_id != session.get('user_id'):
+            return jsonify({"error": "Forbidden"}), 403
+        data = request.get_json()
+        fields = ['title', 'description', 'price', 'category', 'condition', 'image_url']
+        for field in fields:
+            if field in data:
+                setattr(listing, field, data[field])
+        db.session.commit()
+        return jsonify(listing.to_dict()), 200
+
+    # 3. DELETE: Soft-delete
+    if request.method == 'DELETE':
+        if listing.seller_id != session.get('user_id'):
+            return jsonify({"error": "Forbidden"}), 403
+        listing.is_deleted = True
+        db.session.commit()
+        return jsonify({"message": "Listing successfully deleted"}), 200
+
+@listings_bp.route('/marketplace')
+def marketplace_page():
+    """Render the Marketplace HTML page."""
+    return render_template('listings.html')
+
+@listings_bp.route('/create-listing')
+def create_listing_page():
+    """Render the Create Listing HTML page."""
+    return render_template('create_listing.html')
+
+@listings_bp.route('/listings/<listing_id>')
+def listing_detail_page(listing_id):
+    """Render the Listing Detail HTML page."""
+    return render_template('listing_detail.html', listing_id=listing_id)
+
+@listings_bp.route('/edit-listing/<listing_id>')
+def edit_listing_page(listing_id):
+    """Render the Edit Listing HTML page."""
+    return render_template('edit_listing.html', listing_id=listing_id)
+
+# Reports
+@listings_bp.route('/api/reports', methods=['POST'])
+def create_report():
+    """Submit a report for a listing."""
+
+    data = request.get_json()
+
+    required_fields = ['listing_id', 'reason', 'description']
+
+    for field in required_fields:
+        if field not in data or not str(data[field]).strip():
+            return jsonify({
+                "error": f"Field '{field}' is required"
+            }), 400
+
+    listing = Listing.query.filter_by(
+        id=data['listing_id'],
+        is_deleted=False
+    ).first()
+
+    if not listing:
+        return jsonify({
+            "error": "Listing not found"
+        }), 404
+
+    report = Report(
+        listing_id=data['listing_id'],
+        reason=data['reason'],
+        description=data['description']
+    )
+
+    try:
+        db.session.add(report)
         db.session.commit()
 
         return jsonify({
-            "message": "Review created successfully",
-            "review": review.to_dict()
+            "message": "Report submitted successfully"
         }), 201
 
-    except Exception as exc:
+    except Exception as e:
         db.session.rollback()
 
         return jsonify({
-            "error": str(exc)
+            "error": "Internal Server Error",
+            "message": str(e)
         }), 500
+    
+@listings_bp.route('/api/admin/reports', methods=['GET'])
+def get_reports():
+    """Return all submitted reports."""
 
+    reports = Report.query.order_by(
+        Report.created_at.desc()
+    ).all()
 
-@review_bp.route(
-    "/api/users/<int:user_id>/reviews",
-    methods=["GET"]
-)
-def get_user_reviews(user_id):
-    """Return a user's review summary and review list.
+    return jsonify(
+        [report.to_dict() for report in reports]
+    ), 200
 
-    Any user (logged in or not) can view another user's average
-    rating and reviews - this powers the seller rating shown on the
-    listing detail page.
-    """
+@listings_bp.route('/admin/reports')
+def reports_page():
+    """Render reports management page."""
+    return render_template('reports.html')
 
-    reviews = Review.query.filter_by(
-        reviewee_id=user_id
-    ).order_by(Review.created_at.desc()).all()
+@listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
+def dismiss_report(report_id):
+    """Dismiss a report."""
 
-    if not reviews:
-        return jsonify({
-            "message": "No ratings yet (New Trader)",
-            "average_rating": None,
-            "review_count": 0,
-            "reviews": []
-        }), 200
+    report = db.get_or_404(Report, report_id)
 
-    average = calculate_average_rating(reviews)
+    db.session.delete(report)
+    db.session.commit()
 
     return jsonify({
-        "average_rating": average,
-        "review_count": len(reviews),
-        "reviews": [review.to_dict() for review in reviews]
+        "message": "Report dismissed successfully"
     }), 200
 
+@listings_bp.route('/admin/users')
+def users_page():
+    """Render user management page."""
+    return render_template('users.html')
 
-@review_bp.route("/api/reviews/pending", methods=["GET"])
-def get_pending_reviews():
-    """Return the logged-in user's completed transactions that are
-    still awaiting a review from them.
+@listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
+def suspend_user(user_id):
+    """Suspend a user account."""
 
-    Used to drive the "Leave a review" list on the transaction
-    history page - it does not replace Ashlyn's full transaction
-    history endpoint, it only surfaces what still needs a review.
-    """
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
+    user = db.get_or_404(User, user_id)
 
-    transactions = Transaction.query.filter(
-        (Transaction.buyer_id == user_id) | (Transaction.seller_id == user_id)
-    ).order_by(Transaction.completed_at.desc()).all()
+    user.account_status = "suspended"
+    db.session.commit()
 
-    pending = []
-    for transaction in transactions:
-        if review_exists(Review, transaction.id, user_id):
-            continue
+    return jsonify({
+        "message": "User suspended successfully"
+    }), 200
 
-        counterpart_id = get_counterpart_id(transaction, user_id)
-        if transaction.buyer_id == user_id:
-            counterpart = transaction.seller
-            role = "buyer"
-        else:
-            counterpart = transaction.buyer
-            role = "seller"
+@listings_bp.route('/api/admin/users/<int:user_id>/unsuspend', methods=['PUT'])
+def unsuspend_user(user_id):
+    """Unsuspend a user account."""
 
-        pending.append({
-            "transaction_id": transaction.id,
-            "listing_id": transaction.listing_id,
-            "listing_title": transaction.listing.title if transaction.listing else None,
-            "completed_at": transaction.completed_at.isoformat(),
-            "your_role": role,
-            "counterpart_id": counterpart_id,
-            "counterpart_display_name": counterpart.display_name if counterpart else None
-        })
+    user = db.get_or_404(User, user_id)
 
-    return jsonify({"user_id": user_id, "pending_reviews": pending}), 200
+    user.account_status = "active"
+    db.session.commit()
 
-
-@review_bp.route("/transaction-history")
-def transaction_history_page():
-    """Render the transaction history / reviews page."""
-    return render_template("transaction_history.html")
+    return jsonify({
+        "message": "User unsuspended successfully"
+    }), 200
