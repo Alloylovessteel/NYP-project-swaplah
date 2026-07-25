@@ -13,16 +13,32 @@ def create_listing():
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
+
     data = request.get_json()
     required_fields = ['title', 'description', 'price', 'category', 'condition', 'image_url']
     for field in required_fields:
         if field not in data or not str(data[field]).strip():
             return jsonify({"error": f"Field '{field}' is required"}), 400
 
+    # --- PRICE VALIDATION LOGIC ---
+    price_str = str(data['price']).strip()
+
+    # Check if price is NOT "Free", NOT "Swap Only", and NOT a valid float number
+    is_free_or_swap = price_str.lower() in ["free", "swap only"]
+    is_valid_number = True
+    try:
+        float(price_str)
+    except ValueError:
+        is_valid_number = False
+
+    if not is_free_or_swap and not is_valid_number:
+        return jsonify({"error": "Price must be a valid number, 'Free', or 'Swap Only'"}), 400
+    # ------------------------------
+
     new_listing = Listing(
         title=data['title'],
         description=data['description'],
-        price=data['price'],
+        price=price_str, # Save the validated string
         category=data['category'],
         condition=data['condition'],
         image_url=data['image_url'],
@@ -36,7 +52,7 @@ def create_listing():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
-
+    
 @listings_bp.route('/api/listings', methods=['GET'])
 def get_listings():
     """Returns active listings with search, filter, and pagination."""
@@ -73,7 +89,7 @@ def get_listings():
 def handle_single_listing(listing_id):
     """Handles fetching, updating, and deleting a single listing."""
     listing = db.get_or_404(Listing, listing_id)
-    
+
     # 1. GET: Fetch Details
     if request.method == 'GET':
         if listing.is_deleted:
