@@ -1,7 +1,7 @@
 """Script to seed the database with realistic sample data for testing."""
 from werkzeug.security import generate_password_hash
 from app import create_app, db
-from app.models import Listing, User
+from app.models import Listing, User, Report
 
 app = create_app()
 
@@ -24,7 +24,22 @@ def seed_data():
                  contact_number="88887777", password_hash=valid_password_hash, account_status="active"),
             User(student_id="252222B", first_name="Ashlyn", last_name="Student", 
                  display_name="Ashlyn", email="ashlyn@mymail.nyp.edu.sg", 
-                 contact_number="90001111", password_hash=valid_password_hash, account_status="active")
+                 contact_number="90001111", password_hash=valid_password_hash, account_status="active"),
+
+            # ---------------------------
+            # Admin Account
+            # ---------------------------
+            User(
+                student_id="253817B",
+                first_name="Nann",
+                last_name="Wint Yee Myo",
+                display_name="Nann",
+                email="253817B@mymail.nyp.edu.sg",
+                contact_number="99999999",
+                password_hash=valid_password_hash,
+                account_status="active",
+                is_admin=True
+            )
         ]
         db.session.add_all(users)
         db.session.commit()
@@ -83,7 +98,45 @@ def seed_data():
 
         db.session.add_all(listings)
         db.session.commit()
-        print(f"Success: Seeded {len(users)} users and {len(listings)} listings!")
+
+        # 4. Create Sample Reports
+        reports = [
+            Report(
+                listing_id=listings[0].id,
+                reason="Spam",
+                description="This listing appears to be fake."
+            ),
+            Report(
+                listing_id=listings[2].id,
+                reason="Inappropriate Content",
+                description="The description contains inappropriate language."
+            ),
+            Report(
+                listing_id=listings[5].id,
+                reason="Fraud",
+                description="Seller is requesting payment outside the platform."
+            ),
+            Report(
+                listing_id=listings[8].id,
+                reason="Duplicate Listing",
+                description="The same item has been listed multiple times."
+            ),
+            Report(
+                listing_id=listings[10].id,
+                reason="Misleading Information",
+                description="The item condition does not match the description."
+            )
+        ]
+
+        db.session.add_all(reports)
+        db.session.commit()
+
+        print(
+            f"Success: Seeded "
+            f"{len(users)} users, "
+            f"{len(listings)} listings and "
+            f"{len(reports)} reports!"
+        )
 
 if __name__ == "__main__":
     seed_data()

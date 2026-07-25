@@ -255,3 +255,29 @@ def forgot_password_page():
 def reset_password_page():
     """Render the reset password page."""
     return render_template('reset_password.html')
+
+# Admin login
+@auth_bp.route('/admin/login')
+def admin_login_page():
+    """Render the admin login page."""
+    return render_template('admin_login.html')
+
+@auth_bp.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    """Temporary admin login."""
+
+    data = request.get_json()
+
+    if not data.get("email") or not data.get("password"):
+        return jsonify({"error": "Email and password are required"}), 400
+
+    user = User.query.filter_by(email=data["email"]).first()
+
+    if not user or not check_password_hash(user.password_hash, data["password"]):
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    session["user_id"] = user.id
+
+    return jsonify({
+        "message": "Administrator login successful"
+    }), 200
