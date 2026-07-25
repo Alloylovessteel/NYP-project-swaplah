@@ -19,6 +19,7 @@ class User(db.Model):
     contact_number = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     account_status = db.Column(db.String(20), default='active')
+    is_admin = db.Column(db.Boolean, default=False)
     listings = db.relationship('Listing', backref='seller', lazy=True)
 
 
