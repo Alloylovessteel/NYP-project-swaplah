@@ -111,3 +111,17 @@ def test_get_listing_detail(client):
     assert response.json['title'] == "Detail View Item"
     assert 'seller_info' in response.json
     assert response.json['seller_info']['display_name'] == "Irsyad"
+
+def test_create_listing_invalid_price(client):
+    payload = {
+        "title": "Bad Price Item", 
+        "description": "d", 
+        "price": "asdfgh", #
+        "category": "Books", 
+        "condition": "New", 
+        "image_url": "t.jpg"
+    }
+    response = client.post('/api/listings', json=payload)
+    assert response.status_code == 400
+    assert "Price must be a valid number" in response.json['error']
+
