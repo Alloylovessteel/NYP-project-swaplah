@@ -16,7 +16,8 @@ def client():
     app = create_app(test_config)
 
     with app.app_context():
-        user = User(
+        admin = User(
+            id=1,
             student_id="S4000001",
             first_name="Admin",
             last_name="User",
@@ -27,7 +28,19 @@ def client():
             is_admin=True
         )
 
-        db.session.add(user)
+        student = User(
+            id=2,
+            student_id="S4000002",
+            first_name="John",
+            last_name="Student",
+            display_name="John",
+            email="john@nyp.edu.sg",
+            contact_number="91234567",
+            password_hash="hash",
+            is_admin=False
+        )
+
+        db.session.add_all([admin, student])
         db.session.commit()
 
     with app.test_client() as test_client:
@@ -128,14 +141,17 @@ def test_view_users(client):
     response = client.get("/api/admin/users")
 
     assert response.status_code == 200
-    assert len(response.get_json()) == 1
+    users = response.get_json()
+
+    assert len(users) == 1
+    assert users[0]["is_admin"] is False
 
 
 # ---------- Suspend ----------
 
 def test_suspend_user(client):
 
-    response = client.put("/api/admin/users/1/suspend")
+    response = client.put("/api/admin/users/2/suspend")
 
     assert response.status_code == 200
 
@@ -144,8 +160,7 @@ def test_suspend_user(client):
 
 def test_unsuspend_user(client):
 
-    client.put("/api/admin/users/1/suspend")
+    client.put("/api/admin/users/2/suspend")
 
-    response = client.put("/api/admin/users/1/unsuspend")
-
+    response = client.put("/api/admin/users/2/unsuspend")
     assert response.status_code == 200
