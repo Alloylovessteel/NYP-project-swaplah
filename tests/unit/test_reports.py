@@ -27,7 +27,7 @@ def client():
                 email="admin@nyp.edu.sg",
                 contact_number="12345678",
                 password_hash="hash",
-                account_status="active"
+                account_status="active",
                 is_admin=True
                 )
 
