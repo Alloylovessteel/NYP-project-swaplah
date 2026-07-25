@@ -198,7 +198,11 @@ def get_reports():
 @admin_required
 def reports_page():
     """Render reports management page."""
-    return render_template('reports.html')
+
+    return render_template(
+        'reports.html',
+        is_admin=True
+    )
 
 @listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
 @admin_required
@@ -218,7 +222,11 @@ def dismiss_report(report_id):
 @admin_required
 def users_page():
     """Render user management page."""
-    return render_template('users.html')
+
+    return render_template(
+        'users.html',
+        is_admin=True
+    )
 
 @listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
 @admin_required

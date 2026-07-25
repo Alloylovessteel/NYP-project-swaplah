@@ -96,12 +96,24 @@ def login():
     if not user or not check_password_hash(user.password_hash, data['password']):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    if user.account_status == 'suspended':
-        return jsonify({"error": "Your account has been suspended"}), 403
+    # Block admin accounts from using the student login
+    if user.is_admin:
+        return jsonify({
+            "error": "Please use the Administrator Login page."
+        }), 403
+
+    if user.account_status == "suspended":
+        return jsonify({
+            "error": "Your account has been suspended"
+        }), 403
 
     session.permanent = True
-    session['user_id'] = user.id
-    return jsonify({"message": "Login successful", "user_id": user.id}), 200
+    session["user_id"] = user.id
+
+    return jsonify({
+        "message": "Login successful",
+        "user_id": user.id
+    }), 200
 
 
 @auth_bp.route('/api/logout', methods=['POST'])
@@ -213,7 +225,7 @@ def reset_password():
 @admin_required
 def get_users():
     """Return all user accounts."""
-    users = User.query.all()
+    users = User.query.filter_by(is_admin=False).all()
     return jsonify([
         {
             "id": user.id,
@@ -255,3 +267,51 @@ def forgot_password_page():
 def reset_password_page():
     """Render the reset password page."""
     return render_template('reset_password.html')
+
+# Admin login / logout
+@auth_bp.route('/admin/login')
+def admin_login_page():
+    """Render the admin login page."""
+    return render_template('admin_login.html')
+
+@auth_bp.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    """Temporary admin login."""
+
+    data = request.get_json()
+
+    if not data.get("email") or not data.get("password"):
+        return jsonify({"error": "Email and password are required"}), 400
+
+    user = User.query.filter_by(email=data["email"]).first()
+
+    if not user or not check_password_hash(user.password_hash, data["password"]):
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    # Check suspension
+    if user.account_status == "suspended":
+        return jsonify({
+            "error": "Your account has been suspended"
+        }), 403
+
+    # NEW: Only admins can log in here
+    if not user.is_admin:
+        return jsonify({
+            "error": "This account is not an administrator account."
+        }), 403
+
+    session.permanent = True
+    session["user_id"] = user.id
+
+    return jsonify({
+        "message": "Administrator login successful",
+        "user_id": user.id
+    }), 200
+
+@auth_bp.route('/admin/logout')
+def admin_logout():
+    """Logout administrator."""
+
+    session.clear()
+
+    return redirect('/admin/login')
