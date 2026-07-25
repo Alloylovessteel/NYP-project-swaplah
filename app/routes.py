@@ -110,6 +110,7 @@ def handle_single_listing(listing_id):
         return jsonify({"message": "Listing successfully deleted"}), 200
 
 @listings_bp.route('/marketplace')
+@login_required_redirect
 def marketplace_page():
     """Render the Marketplace HTML page."""
     return render_template('listings.html')
@@ -121,6 +122,7 @@ def create_listing_page():
     return render_template('create_listing.html')
 
 @listings_bp.route('/listings/<listing_id>')
+@login_required_redirect
 def listing_detail_page(listing_id):
     """Render the Listing Detail HTML page."""
     return render_template('listing_detail.html', listing_id=listing_id)

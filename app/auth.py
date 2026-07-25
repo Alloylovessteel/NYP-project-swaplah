@@ -252,6 +252,7 @@ def register_page():
 
 
 @auth_bp.route('/profile')
+@login_required_redirect
 def profile_page():
     """Render the profile page."""
     return render_template('profile.html')
@@ -267,6 +268,12 @@ def forgot_password_page():
 def reset_password_page():
     """Render the reset password page."""
     return render_template('reset_password.html')
+
+@auth_bp.route('/logout')
+def logout_page():
+    """Logout the current user and redirect to login."""
+    session.clear()
+    return redirect('/login')
 
 # Admin login / logout
 @auth_bp.route('/admin/login')

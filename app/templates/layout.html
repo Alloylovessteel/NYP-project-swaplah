@@ -51,10 +51,10 @@
                         </a>
                     </li>
 
-                    {% else %}
+                    {% elif session.get('user_id') %}
 
                     <li class="nav-item">
-                        <a class="nav-link active" href="/marketplace">
+                        <a class="nav-link" href="/marketplace">
                             Marketplace
                         </a>
                     </li>
@@ -72,8 +72,28 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-warning" href="/login">
+                        <a class="nav-link" href="/profile">
+                            Profile
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-warning" href="/logout">
+                            Logout
+                        </a>
+                    </li>
+
+                    {% else %}
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">
                             Login
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">
+                            Register
                         </a>
                     </li>
 
