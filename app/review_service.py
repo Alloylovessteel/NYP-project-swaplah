@@ -43,3 +43,16 @@ def review_exists(review_model, transaction_id, reviewer_id):
         transaction_id=transaction_id,
         reviewer_id=reviewer_id
     ).first() is not None
+
+
+def get_counterpart_id(transaction, user_id):
+    """
+    Given a Transaction and a user_id, return the id of the *other*
+    party on that transaction (buyer<->seller), or None if the
+    user_id is not the buyer or seller on this transaction.
+    """
+    if transaction.buyer_id == user_id:
+        return transaction.seller_id
+    if transaction.seller_id == user_id:
+        return transaction.buyer_id
+    return None
