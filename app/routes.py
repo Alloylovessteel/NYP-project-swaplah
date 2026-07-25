@@ -131,11 +131,7 @@ def edit_listing_page(listing_id):
     """Render the Edit Listing HTML page."""
     return render_template('edit_listing.html', listing_id=listing_id)
 
-@listings_bp.route('/create-listing')
-
-@listings_bp.route('/edit-listing/<listing_id>')
-@login_required_redirect  # ADD THIS
-def edit_listing_page(listing_id):
+# Reports
     ...
 
 # Reports
