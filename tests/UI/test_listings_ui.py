@@ -43,47 +43,43 @@ def test_student_can_create_listing(driver):
     # 4. ASSERT: Verify we are redirected to the marketplace
     wait.until(EC.url_contains("/marketplace"))
     assert "marketplace" in driver.current_url
-    
+
 def test_student_can_search_marketplace(driver):
     """
     Test Case: UI Search flow.
     Verifies that typing a keyword in the marketplace filters the items.
     """
     wait = WebDriverWait(driver, 10)
-    
-    # 1. Arrange: Go straight to the marketplace page
     driver.get("http://localhost:5000/marketplace")
 
-    # 2. Act: Type a search query and click search
     search_input = wait.until(EC.presence_of_element_located((By.ID, "searchInput")))
     search_input.send_keys("Physics")
     
     search_btn = driver.find_element(By.ID, "searchBtn")
     search_btn.click()
 
-    # 3. Assert: Verify the results update (give it a moment to fetch via JS)
-    time.sleep(1) # Small pause for async fetch
+    # Wait for the container to update with results
+    time.sleep(1) 
     container = driver.find_element(By.ID, "listingsContainer")
     assert "Physics" in container.text
 
 def test_student_can_navigate_to_detail_page(driver):
     """
     Test Case: UI Navigation flow.
-    Verifies that clicking 'View Details' opens the correct item detail page.
+    Verifies that clicking 'View Details' opens the correct item detail page and loads seller info.
     """
     wait = WebDriverWait(driver, 10)
-
-    # 1. Arrange: Go to marketplace
     driver.get("http://localhost:5000/marketplace")
 
-    # 2. Act: Click the first 'View Details' button available on a card
-    # We use an explicit wait to make sure cards have loaded from the API
+    # Click the first 'View Details' button available on a card
     view_details_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#listingsContainer .btn-outline-primary")))
     view_details_btn.click()
 
-    # 3. Assert: Verify we landed on a listings detail URL
+    # Verify we landed on a listings detail URL
     wait.until(EC.url_contains("/listings/"))
     assert "/listings/" in driver.current_url
-    # Verify contact seller card is rendered
-    assert "Contact Seller" in driver.page_source
 
+    # FIX: Explicitly wait for JavaScript to finish fetching and render "Contact Seller"
+    wait.until(EC.text_to_be_present_in_element((By.ID, "detailContainer"), "Contact Seller"))
+    
+    assert "Contact Seller" in driver.page_source
