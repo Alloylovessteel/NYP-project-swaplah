@@ -1,6 +1,7 @@
 """Routes for the Listings management."""
-from flask import Blueprint, request, jsonify, render_template, session
+from flask import Blueprint, request, jsonify, render_template, session, redirect
 from .models import db, Listing, Report, User
+from .auth import admin_required, login_required_redirect
 
 
 # Create a Blueprint for listings
@@ -114,6 +115,7 @@ def marketplace_page():
     return render_template('listings.html')
 
 @listings_bp.route('/create-listing')
+@login_required_redirect
 def create_listing_page():
     """Render the Create Listing HTML page."""
     return render_template('create_listing.html')
@@ -124,9 +126,17 @@ def listing_detail_page(listing_id):
     return render_template('listing_detail.html', listing_id=listing_id)
 
 @listings_bp.route('/edit-listing/<listing_id>')
+@login_required_redirect
 def edit_listing_page(listing_id):
     """Render the Edit Listing HTML page."""
     return render_template('edit_listing.html', listing_id=listing_id)
+
+@listings_bp.route('/create-listing')
+
+@listings_bp.route('/edit-listing/<listing_id>')
+@login_required_redirect  # ADD THIS
+def edit_listing_page(listing_id):
+    ...
 
 # Reports
 @listings_bp.route('/api/reports', methods=['POST'])
@@ -176,6 +186,7 @@ def create_report():
         }), 500
     
 @listings_bp.route('/api/admin/reports', methods=['GET'])
+@admin_required
 def get_reports():
     """Return all submitted reports."""
 
@@ -188,11 +199,13 @@ def get_reports():
     ), 200
 
 @listings_bp.route('/admin/reports')
+@admin_required
 def reports_page():
     """Render reports management page."""
     return render_template('reports.html')
 
 @listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
+@admin_required
 def dismiss_report(report_id):
     """Dismiss a report."""
 
@@ -206,11 +219,13 @@ def dismiss_report(report_id):
     }), 200
 
 @listings_bp.route('/admin/users')
+@admin_required
 def users_page():
     """Render user management page."""
     return render_template('users.html')
 
 @listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
+@admin_required
 def suspend_user(user_id):
     """Suspend a user account."""
 
@@ -224,6 +239,7 @@ def suspend_user(user_id):
     }), 200
 
 @listings_bp.route('/api/admin/users/<int:user_id>/unsuspend', methods=['PUT'])
+@admin_required
 def unsuspend_user(user_id):
     """Unsuspend a user account."""
 

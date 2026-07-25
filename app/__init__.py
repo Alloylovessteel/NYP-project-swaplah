@@ -14,7 +14,7 @@ def create_app(test_config=None):
 
     if test_config:
         app.config.update(test_config)
-
+        
     db.init_app(app)
 
     with app.app_context():
@@ -23,9 +23,19 @@ def create_app(test_config=None):
     from .routes import listings_bp
     from .auth import auth_bp
     from .review_routes import review_bp
+    from .offers_routes import offers_bp
     app.register_blueprint(listings_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(review_bp)
+    app.register_blueprint(offers_bp)
+
+    @app.after_request
+    def set_security_headers(response):
+        """Add security headers to all responses."""
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        return response
 
     @app.route('/api/health', methods=['GET'])
     def health_check():
