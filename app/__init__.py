@@ -1,5 +1,5 @@
 """Entry point for the SwapLah Flask application."""
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect
 from .models import db
 
 def create_app(test_config=None):
@@ -31,5 +31,10 @@ def create_app(test_config=None):
     def health_check():
         """Health check endpoint to verify server is running."""
         return jsonify({"status": "ok"}), 200
+
+    @app.route('/')
+    def home():
+        """Redirect the root URL to the marketplace page."""
+        return redirect('/marketplace')
 
     return app

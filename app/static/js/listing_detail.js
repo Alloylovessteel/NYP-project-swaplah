@@ -1,3 +1,38 @@
+function renderStars(average) {
+    const rounded = Math.round(average);
+    let stars = "";
+    for (let i = 1; i <= 5; i++) {
+        stars += i <= rounded ? "\u2605" : "\u2606";
+    }
+    return stars;
+}
+
+async function loadSellerRating(sellerId) {
+    const block = document.getElementById("sellerRatingBlock");
+    if (!block) return;
+
+    try {
+        const response = await fetch(`/api/users/${sellerId}/reviews`);
+        if (!response.ok) throw new Error("Unable to load rating");
+
+        const data = await response.json();
+
+        if (!data.review_count) {
+            block.innerHTML = `<span class="text-muted">No ratings yet (New Trader)</span>`;
+            return;
+        }
+
+        const starsHtml = renderStars(data.average_rating);
+        block.innerHTML = `
+            <span class="text-warning">${starsHtml}</span>
+            <span class="fw-semibold">${data.average_rating}</span>
+            <span class="text-muted">(${data.review_count} review${data.review_count === 1 ? "" : "s"})</span>
+        `;
+    } catch (error) {
+        block.innerHTML = `<span class="text-muted">Rating unavailable</span>`;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     const container = document.getElementById("detailContainer");
 
@@ -44,6 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <h5 class="card-title text-primary">Contact Seller</h5>
                         <hr>
                         <p class="mb-1"><strong>Name:</strong> ${item.seller_info ? item.seller_info.display_name : "Anonymous"}</p>
+                        <div id="sellerRatingBlock" class="mb-2 small text-muted">Loading rating&hellip;</div>
                         <p class="mb-1"><strong>Email:</strong> <a href="mailto:${item.seller_info ? item.seller_info.email : ""}">${item.seller_info ? item.seller_info.email : "N/A"}</a></p>
                         <p class="mb-0"><strong>Phone:</strong> ${item.seller_info ? item.seller_info.contact_number : "N/A"}</p>
                     </div>
@@ -134,6 +170,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             </div>
         `;
+
+        if (item.seller_id) {
+            loadSellerRating(item.seller_id);
+        }
 
         const reportButton =
             document.getElementById("submitReportBtn");

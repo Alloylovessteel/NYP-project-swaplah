@@ -165,6 +165,10 @@ class Transaction(db.Model):
         default=lambda: datetime.now(timezone.utc)
     )
 
+    listing = db.relationship('Listing', foreign_keys=[listing_id])
+    buyer = db.relationship('User', foreign_keys=[buyer_id])
+    seller = db.relationship('User', foreign_keys=[seller_id])
+
 
 class Review(db.Model):
     """Model representing a completed transaction review."""
@@ -205,3 +209,20 @@ class Review(db.Model):
         db.DateTime,
         default=lambda: datetime.now(timezone.utc)
     )
+
+    reviewer = db.relationship('User', foreign_keys=[reviewer_id])
+    reviewee = db.relationship('User', foreign_keys=[reviewee_id])
+    transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
+
+    def to_dict(self):
+        """Convert review instance to dictionary for JSON responses."""
+        return {
+            "id": self.id,
+            "transaction_id": self.transaction_id,
+            "reviewer_id": self.reviewer_id,
+            "reviewer_display_name": self.reviewer.display_name if self.reviewer else None,
+            "reviewee_id": self.reviewee_id,
+            "rating": self.rating,
+            "comment": self.comment,
+            "created_at": self.created_at.isoformat()
+        }

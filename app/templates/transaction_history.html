@@ -2,8 +2,63 @@
 
 {% block content %}
 <h2>Transaction History</h2>
+<p class="text-muted">
+    Full transaction history (offer details, item swapped, etc.) is being built out separately.
+    This page currently surfaces the Reviews &amp; Ratings side of things: transactions still
+    awaiting your review, and the reviews you've received.
+</p>
 
-<div id="historyContainer">
-    <p>Your completed transactions will appear here.</p>
+<div id="pendingReviewsContainer" class="mb-5">
+    <h4>Reviews You Owe</h4>
+    <div id="pendingReviewsList">
+        <p class="text-muted">Loading&hellip;</p>
+    </div>
 </div>
+
+<div id="receivedReviewsContainer">
+    <h4>Reviews You've Received</h4>
+    <div id="receivedReviewsSummary" class="mb-2"></div>
+    <div id="receivedReviewsList">
+        <p class="text-muted">Loading&hellip;</p>
+    </div>
+</div>
+
+<!-- Leave a Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Leave a Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="reviewTransactionId">
+                <p class="mb-3" id="reviewModalSubtitle"></p>
+
+                <div class="mb-3">
+                    <label class="form-label">Rating</label>
+                    <div id="starPicker" class="fs-3" style="cursor: pointer;">
+                        <span class="star" data-value="1">&#9734;</span><span class="star" data-value="2">&#9734;</span><span class="star" data-value="3">&#9734;</span><span class="star" data-value="4">&#9734;</span><span class="star" data-value="5">&#9734;</span>
+                    </div>
+                    <input type="hidden" id="reviewRating" value="0">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Comment (optional)</label>
+                    <textarea class="form-control" id="reviewComment" rows="3" maxlength="500"></textarea>
+                </div>
+
+                <div id="reviewError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitReviewBtn">Submit Review</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/review_history.js') }}"></script>
 {% endblock %}
