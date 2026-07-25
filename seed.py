@@ -25,7 +25,7 @@ def seed_data():
             User(student_id="252222B", first_name="Ashlyn", last_name="Student", 
                  display_name="Ashlyn", email="ashlyn@mymail.nyp.edu.sg", 
                  contact_number="90001111", password_hash=valid_password_hash, account_status="active"),
-
+            
             # ---------------------------
             # Admin Account
             # ---------------------------
