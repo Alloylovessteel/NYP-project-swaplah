@@ -40,3 +40,29 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **TC-SEC-001** | Prevent unauthenticated listing creation | User is logged out | POST valid JSON to `/api/listings` | HTTP 401 Unauthorized |
 | **TC-SEC-002** | Prevent unauthorized listing modification | User A logged in, Item owned by User B | PUT changes to `/api/listings/<user_b_item_id>` | HTTP 403 Forbidden |
+
+## Reporting & Administration Test Plan - Nann Wint Yee Myo (253817B)
+
+### 1. Reporting & Administration Test Plan
+
+| Test ID | User Story | Test Scenario | Preconditions | Test Steps | Expected Results |
+|---------|------------|---------------|---------------|------------|------------------|
+| TC01 | US1 | Submit a report successfully | Listing exists | Open listing → Click **Report Listing** → Enter valid reason and description → Submit | Report is successfully submitted and stored in the database |
+| TC02 | US1 | Submit report with missing required fields | Listing exists | Open listing → Leave reason or description empty → Submit | Validation error is displayed and report is not submitted |
+| TC03 | US2 | View submitted reports | At least one report exists | Open **Admin Reports** page | All submitted reports are displayed with report details |
+| TC04 | US3 | Remove reported listing | Reported listing exists | Open **Admin Reports** page → Click **Remove Listing** | Listing is removed and no longer appears in the marketplace |
+| TC05 | US4 | Dismiss invalid report | Report exists | Open **Admin Reports** page → Click **Dismiss Report** | Report status is updated and removed from active review |
+| TC06 | US5 | View user accounts | User accounts exist | Open **Admin Users** page | User account information is displayed correctly |
+| TC07 | US6 | Suspend and unsuspend user account | User account exists | Click **Suspend** → Verify status → Click **Unsuspend** | Account status changes between active and suspended correctly |
+
+### 2. Administrator Authentication Test Plan
+
+| Test ID | Feature | Test Scenario | Preconditions | Test Steps | Expected Results |
+|---------|---------|---------------|---------------|------------|------------------|
+| TC08 | Administrator Login | Administrator logs in successfully | Administrator account exists | Open `/admin/login` → Enter valid administrator email and password → Click **Sign In** | Administrator login is successful and administrator is redirected to the Reports page |
+| TC09 | Administrator Login | Invalid administrator password | Administrator account exists | Open `/admin/login` → Enter valid administrator email and incorrect password → Click **Sign In** | Login is rejected and an **"Invalid email or password"** message is displayed |
+| TC10 | Administrator Login | Student account attempts administrator login | Student account exists | Open `/admin/login` → Enter valid student credentials → Click **Sign In** | Login is rejected and only administrator accounts are allowed to access the administrator portal |
+| TC11 | Student Login | Administrator attempts student login | Administrator account exists | Open `/login` → Enter valid administrator credentials → Click **Sign In** | Login is rejected and administrator is prompted to use the Administrator Login page |
+| TC12 | Administrator Authorization | Access Reports page without logging in | Administrator is not logged in | Navigate directly to `/admin/reports` | Access is denied and user is redirected to the login page or receives an Unauthorized response |
+| TC13 | Administrator Authorization | Access User Management page without logging in | Administrator is not logged in | Navigate directly to `/admin/users` | Access is denied and user is redirected to the login page or receives an Unauthorized response |
+| TC14 | Administrator Logout | Administrator logs out successfully | Administrator is logged in | Click **Logout** | Administrator session is cleared and user is redirected to the Administrator Login page |
