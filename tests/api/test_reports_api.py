@@ -23,7 +23,7 @@ def client():
             display_name="Admin",
             email="admin@nyp.edu.sg",
             contact_number="98765432",
-            password_hash="hash"
+            password_hash="hash",
             is_admin=True
         )
 
