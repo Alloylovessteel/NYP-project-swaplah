@@ -1,25 +1,39 @@
+<<<<<<< HEAD
 """Entry point for the SwapLah Flask application."""
 from flask import Flask, jsonify, redirect
+=======
+from flask import Flask
+
+>>>>>>> feature/offers-transactions
 from .models import db
+from .auth import auth_bp
+from .offers import offers_bp
+from .routes import listings_bp
+
 
 def create_app(test_config=None):
-    """Create and configure the Flask app."""
     app = Flask(__name__)
 
-    # Default configuration
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///swaplah.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'dev-secret-key'
-    app.config['PERMANENT_SESSION_LIFETIME'] = 1800
+    app.config.from_mapping(
+        SECRET_KEY="dev",
+        SQLALCHEMY_DATABASE_URI="sqlite:///swaplah.db",
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
 
     if test_config:
         app.config.update(test_config)
         
     db.init_app(app)
 
+    # Register all blueprints
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(offers_bp)
+    app.register_blueprint(listings_bp)
+
     with app.app_context():
         db.create_all()
 
+<<<<<<< HEAD
     from .routes import listings_bp
     from .auth import auth_bp
     from .review_routes import review_bp
@@ -47,4 +61,6 @@ def create_app(test_config=None):
         """Redirect the root URL to the marketplace page."""
         return redirect('/marketplace')
 
+=======
+>>>>>>> feature/offers-transactions
     return app
