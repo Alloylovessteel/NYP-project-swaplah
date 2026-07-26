@@ -211,6 +211,8 @@ class Review(db.Model):
         default=lambda: datetime.now(timezone.utc)
     )
 
+    is_deleted = db.Column(db.Boolean, default=False)
+
     reviewer = db.relationship('User', foreign_keys=[reviewer_id])
     reviewee = db.relationship('User', foreign_keys=[reviewee_id])
     transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
@@ -225,5 +227,6 @@ class Review(db.Model):
             "reviewee_id": self.reviewee_id,
             "rating": self.rating,
             "comment": self.comment,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat(),
+            "is_deleted": self.is_deleted
         }
