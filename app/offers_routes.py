@@ -279,35 +279,6 @@ def reject_offer(offer_id):
         ), 500
 
 
-@offers_bp.route("/api/transactions", methods=["GET"])
-def get_transactions():
-    """Return transactions involving the logged-in user."""
-
-    user_id = get_logged_in_user_id()
-
-    if not user_id:
-        return jsonify({"error": "You must be logged in"}), 401
-
-    transactions = (
-        Transaction.query
-        .filter(
-            (Transaction.buyer_id == user_id)
-            | (Transaction.seller_id == user_id)
-        )
-        .order_by(Transaction.completed_at.desc())
-        .all()
-    )
-
-    return jsonify(
-        {
-            "transactions": [
-                serialize_transaction(transaction)
-                for transaction in transactions
-            ]
-        }
-    ), 200
-
-
 def serialize_offer(offer):
     """Convert an Offer object into JSON-safe data."""
 
