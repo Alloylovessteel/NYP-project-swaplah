@@ -135,6 +135,9 @@ def respond_to_offer(offer_id):
         
         for other_offer in other_offers:
             other_offer.status = 'rejected'
+
+        # Mark listing as sold so it no longer appears in active marketplace
+        listing.is_deleted = True
         
         # Create transaction record
         transaction = Transaction(
@@ -175,4 +178,29 @@ def get_user_offers():
             "created_at": offer.created_at.isoformat()
         }
         for offer in offers
+    ]), 200
+
+@offers_bp.route('/api/user/transactions', methods=['GET'])
+def get_user_transactions():
+    """Get all completed transactions for the logged-in user (as buyer or seller)."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    transactions = Transaction.query.filter(
+        (Transaction.buyer_id == user_id) | (Transaction.seller_id == user_id)
+    ).order_by(Transaction.completed_at.desc()).all()
+
+    return jsonify([
+        {
+            "id": t.id,
+            "listing_id": t.listing_id,
+            "listing_title": t.listing.title if t.listing else None,
+            "role": "buyer" if t.buyer_id == user_id else "seller",
+            "counterpart_name": (
+                t.seller.display_name if t.buyer_id == user_id else t.buyer.display_name
+            ),
+            "completed_at": t.completed_at.isoformat()
+        }
+        for t in transactions
     ]), 200
