@@ -211,11 +211,19 @@ def create_report():
 @listings_bp.route('/api/admin/reports', methods=['GET'])
 @admin_required
 def get_reports():
-    """Return all submitted reports."""
+    """Return submitted reports for listings that are still active.
 
-    reports = Report.query.order_by(
-        Report.created_at.desc()
-    ).all()
+    Reports whose listing has already been removed are left out so the
+    admin queue stops showing an entry after the linked listing is gone.
+    """
+
+    reports = (
+        Report.query
+        .join(Listing, Report.listing_id == Listing.id)
+        .filter(Listing.is_deleted.is_(False))
+        .order_by(Report.created_at.desc())
+        .all()
+    )
 
     return jsonify(
         [report.to_dict() for report in reports]

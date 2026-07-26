@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, session
 from datetime import datetime, timezone
-from app.models import db, Listing, Offer, Transaction
+from app.models import db, Listing, Offer, Transaction, User
 
 
 offers_bp = Blueprint("offers", __name__)
@@ -209,6 +209,13 @@ def accept_offer(offer_id):
         )
 
         db.session.add(transaction)
+
+        # The item has now been sold/swapped, so it should no longer show
+        # up in the marketplace or be open to further offers. Reusing the
+        # existing soft-delete flag keeps this consistent with how removed
+        # listings already behave everywhere else in the app.
+        listing.is_deleted = True
+
         db.session.flush()
         db.session.commit()
 
@@ -282,16 +289,25 @@ def reject_offer(offer_id):
 def serialize_offer(offer):
     """Convert an Offer object into JSON-safe data."""
 
+    buyer = User.query.get(offer.buyer_id)
+
+    swap_listing_title = None
+    if offer.swap_listing_id:
+        swap_listing = Listing.query.get(offer.swap_listing_id)
+        swap_listing_title = swap_listing.title if swap_listing else None
+
     return {
         "id": offer.id,
         "listing_id": offer.listing_id,
         "buyer_id": offer.buyer_id,
+        "buyer_display_name": buyer.display_name if buyer else None,
         "offer_price": (
             float(offer.offer_price)
             if offer.offer_price is not None
             else None
         ),
         "swap_listing_id": offer.swap_listing_id,
+        "swap_listing_title": swap_listing_title,
         "status": offer.status,
         "created_at": (
             offer.created_at.isoformat()
