@@ -119,9 +119,9 @@ def handle_single_listing(listing_id):
 
     # 3. DELETE: Soft-delete
         if request.method == 'DELETE':
-        current_user = User.query.get(session.get('user_id'))
-        is_owner = listing.seller_id == session.get('user_id')
-        is_admin = current_user and current_user.is_admin
+            current_user = User.query.get(session.get('user_id'))
+            is_owner = listing.seller_id == session.get('user_id')
+            is_admin = current_user and current_user.is_admin
 
         if not is_owner and not is_admin:
             return jsonify({"error": "Forbidden"}), 403
