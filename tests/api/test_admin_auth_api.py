@@ -56,7 +56,7 @@ def client():
 
 
 # ----------------------------------------
-# TC08
+# TC07
 # Administrator logs in successfully
 # ----------------------------------------
 
@@ -72,7 +72,7 @@ def test_admin_login_success(client):
 
 
 # ----------------------------------------
-# TC09
+# TC08
 # Invalid administrator password
 # ----------------------------------------
 
@@ -88,7 +88,7 @@ def test_admin_login_invalid_password(client):
 
 
 # ----------------------------------------
-# TC10
+# TC09
 # Student account attempts administrator login
 # ----------------------------------------
 
@@ -104,7 +104,7 @@ def test_student_cannot_login_admin(client):
 
 
 # ----------------------------------------
-# TC11
+# TC10
 # Administrator attempts student login
 # ----------------------------------------
 
@@ -120,7 +120,7 @@ def test_admin_cannot_login_student(client):
 
 
 # ----------------------------------------
-# TC12
+# TC11
 # Access Reports page without logging in
 # ----------------------------------------
 
@@ -135,7 +135,7 @@ def test_reports_requires_login(client):
 
 
 # ----------------------------------------
-# TC13
+# TC12
 # Access User Management page without logging in
 # ----------------------------------------
 
@@ -150,7 +150,7 @@ def test_users_requires_login(client):
 
 
 # ----------------------------------------
-# TC14
+# TC13
 # Administrator logs out successfully
 # ----------------------------------------
 
@@ -167,3 +167,95 @@ def test_admin_logout(client):
 
     with client.session_transaction() as sess:
         assert "user_id" not in sess
+
+
+# ----------------------------------------
+# Additional API Test
+# Administrator login with missing email
+# ----------------------------------------
+
+def test_admin_login_missing_email(client):
+
+    response = client.post("/api/admin/login", json={
+        "password": "admin123"
+    })
+
+    assert response.status_code == 400
+
+
+# ----------------------------------------
+# Additional API Test
+# Administrator login with missing password
+# ----------------------------------------
+
+def test_admin_login_missing_password(client):
+
+    response = client.post("/api/admin/login", json={
+        "email": "admin@nyp.edu.sg"
+    })
+
+    assert response.status_code == 400
+
+
+# ----------------------------------------
+# Additional API Test
+# Non-existent administrator account
+# ----------------------------------------
+
+def test_admin_login_nonexistent_account(client):
+
+    response = client.post("/api/admin/login", json={
+        "email": "unknown@nyp.edu.sg",
+        "password": "password123"
+    })
+
+    assert response.status_code == 401
+
+
+# ----------------------------------------
+# Additional API Test
+# Student cannot access Reports page
+# ----------------------------------------
+
+def test_student_cannot_access_reports(client):
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = 2
+
+    response = client.get("/admin/reports")
+
+    assert response.status_code == 403
+
+
+# ----------------------------------------
+# Additional API Test
+# Student cannot access User Management page
+# ----------------------------------------
+
+def test_student_cannot_access_users(client):
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = 2
+
+    response = client.get("/admin/users")
+
+    assert response.status_code == 403
+
+
+# ----------------------------------------
+# Additional API Test
+# Administrator cannot access Reports after logout
+# ----------------------------------------
+
+def test_admin_cannot_access_after_logout(client):
+
+    client.post("/api/admin/login", json={
+        "email": "admin@nyp.edu.sg",
+        "password": "admin123"
+    })
+
+    client.get("/admin/logout")
+
+    response = client.get("/admin/reports")
+
+    assert response.status_code in (302, 401, 403)
