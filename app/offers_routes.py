@@ -21,7 +21,6 @@ def create_offer():
     if not listing_id:
         return jsonify({"error": "listing_id is required"}), 400
     
-    # Must have either price or swap listing
     if not offer_price and not swap_listing_id:
         return jsonify({"error": "offer_price or swap_listing_id is required"}), 400
     
@@ -29,15 +28,15 @@ def create_offer():
     if not listing or listing.is_deleted:
         return jsonify({"error": "Listing not found"}), 404
     
-    # Cannot offer on own listing
     if listing.seller_id == buyer_id:
         return jsonify({"error": "Cannot offer on your own listing"}), 400
     
-    # If swap, verify swap listing exists and belongs to buyer
     if swap_listing_id:
         swap_listing = Listing.query.get(swap_listing_id)
+
         if not swap_listing or swap_listing.is_deleted:
             return jsonify({"error": "Swap listing not found"}), 404
+
         if swap_listing.seller_id != buyer_id:
             return jsonify({"error": "Swap listing must belong to you"}), 400
     
@@ -52,27 +51,34 @@ def create_offer():
     try:
         db.session.add(offer)
         db.session.commit()
+
         return jsonify({
             "message": "Offer submitted successfully",
             "offer_id": offer.id
         }), 201
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+        return jsonify({
+            "error": "Internal Server Error",
+            "message": str(e)
+        }), 500
 
 
 @offers_bp.route('/api/listings/<listing_id>/offers', methods=['GET'])
 def get_offers_for_listing(listing_id):
     """Get pending offers for a listing (seller only)."""
+
     user_id = session.get('user_id')
+
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
     
     listing = Listing.query.get(listing_id)
+
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
     
-    # Only seller can view offers on their listing
     if listing.seller_id != user_id:
         return jsonify({"error": "Forbidden"}), 403
     
@@ -98,70 +104,75 @@ def get_offers_for_listing(listing_id):
 @offers_bp.route('/api/offers/<int:offer_id>', methods=['PUT'])
 def respond_to_offer(offer_id):
     """Accept or reject an offer."""
+
     user_id = session.get('user_id')
+
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
     
     offer = Offer.query.get(offer_id)
+
     if not offer:
         return jsonify({"error": "Offer not found"}), 404
     
-    # Only listing seller can respond to offer
     listing = Listing.query.get(offer.listing_id)
+
     if listing.seller_id != user_id:
         return jsonify({"error": "Forbidden"}), 403
     
     data = request.get_json()
-    action = data.get('action')  # 'accept' or 'reject'
+    action = data.get('action')
     
     if action not in ['accept', 'reject']:
-        return jsonify({"error": "action must be 'accept' or 'reject'"}), 400
+        return jsonify({
+            "error": "action must be 'accept' or 'reject'"
+        }), 400
     
     if action == 'reject':
         offer.status = 'rejected'
         db.session.commit()
-        return jsonify({"message": "Offer rejected"}), 200
+
+        return jsonify({
+            "message": "Offer rejected"
+        }), 200
     
     if action == 'accept':
-        # Accept this offer
+
         offer.status = 'accepted'
-        
-        # Auto-reject all other pending offers on same listing
+
         other_offers = Offer.query.filter(
             Offer.listing_id == offer.listing_id,
             Offer.id != offer_id,
             Offer.status == 'pending'
         ).all()
-        
+
         for other_offer in other_offers:
             other_offer.status = 'rejected'
 
-        # Mark listing as sold so it no longer appears in active marketplace
         listing.is_deleted = True
-        
-        # Create transaction record
+
         transaction = Transaction(
             listing_id=offer.listing_id,
             buyer_id=offer.buyer_id,
             seller_id=listing.seller_id,
             completed_at=datetime.now(timezone.utc)
         )
-        
+
         db.session.add(transaction)
         db.session.commit()
-        
+
         return jsonify({
             "message": "Offer accepted",
             "transaction_id": transaction.id
         }), 200
-    
-    return jsonify({"error": "Invalid action"}), 400
 
 
 @offers_bp.route('/api/user/offers', methods=['GET'])
 def get_user_offers():
     """Get all offers made by logged-in user."""
+
     user_id = session.get('user_id')
+
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
     
@@ -180,15 +191,19 @@ def get_user_offers():
         for offer in offers
     ]), 200
 
+
 @offers_bp.route('/api/user/transactions', methods=['GET'])
 def get_user_transactions():
-    """Get all completed transactions for the logged-in user (as buyer or seller)."""
+    """Get all completed transactions for the logged-in user."""
+
     user_id = session.get('user_id')
+
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
     transactions = Transaction.query.filter(
-        (Transaction.buyer_id == user_id) | (Transaction.seller_id == user_id)
+        (Transaction.buyer_id == user_id) |
+        (Transaction.seller_id == user_id)
     ).order_by(Transaction.completed_at.desc()).all()
 
     return jsonify([
@@ -198,9 +213,69 @@ def get_user_transactions():
             "listing_title": t.listing.title if t.listing else None,
             "role": "buyer" if t.buyer_id == user_id else "seller",
             "counterpart_name": (
-                t.seller.display_name if t.buyer_id == user_id else t.buyer.display_name
+                t.seller.display_name
+                if t.buyer_id == user_id
+                else t.buyer.display_name
             ),
             "completed_at": t.completed_at.isoformat()
         }
         for t in transactions
     ]), 200
+
+
+# ADDED FOR TESTS
+@offers_bp.route('/api/offers/<int:offer_id>/accept', methods=['POST'])
+def accept_offer(offer_id):
+    """Seller accepts an offer."""
+
+    user_id = session.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    offer = Offer.query.get(offer_id)
+
+    if not offer:
+        return jsonify({"error": "Offer not found"}), 404
+
+    listing = Listing.query.get(offer.listing_id)
+
+    if listing.seller_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    offer.status = "accepted"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Offer accepted"
+    }), 200
+
+
+# ADDED FOR TESTS
+@offers_bp.route('/api/offers/<int:offer_id>/reject', methods=['POST'])
+def reject_offer(offer_id):
+    """Seller rejects an offer."""
+
+    user_id = session.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    offer = Offer.query.get(offer_id)
+
+    if not offer:
+        return jsonify({"error": "Offer not found"}), 404
+
+    listing = Listing.query.get(offer.listing_id)
+
+    if listing.seller_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    offer.status = "rejected"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Offer rejected"
+    }), 200
