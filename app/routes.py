@@ -119,8 +119,13 @@ def handle_single_listing(listing_id):
 
     # 3. DELETE: Soft-delete
     if request.method == 'DELETE':
-        if listing.seller_id != session.get('user_id'):
+        current_user = User.query.get(session.get('user_id'))
+        is_owner = listing.seller_id == session.get('user_id')
+        is_admin = current_user and current_user.is_admin
+
+        if not is_owner and not is_admin:
             return jsonify({"error": "Forbidden"}), 403
+
         listing.is_deleted = True
         db.session.commit()
         return jsonify({"message": "Listing successfully deleted"}), 200
@@ -141,7 +146,11 @@ def create_listing_page():
 @login_required_redirect
 def listing_detail_page(listing_id):
     """Render the Listing Detail HTML page."""
-    return render_template('listing_detail.html', listing_id=listing_id)
+    return render_template(
+        'listing_detail.html',
+        listing_id=listing_id,
+        current_user_id=session.get('user_id')
+    )
 
 @listings_bp.route('/edit-listing/<listing_id>')
 @login_required_redirect

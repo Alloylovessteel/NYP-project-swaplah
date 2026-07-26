@@ -118,6 +118,35 @@ function setStarRating(value) {
     });
 }
 
+async function loadTransactions() {
+    const list = document.getElementById("transactionsList");
+    if (!list) return;
+
+    try {
+        const response = await fetch("/api/user/transactions");
+        if (!response.ok) throw new Error("Failed to load transactions");
+
+        const transactions = await response.json();
+
+        if (!transactions.length) {
+            list.innerHTML = `<p class="text-muted">No completed transactions yet.</p>`;
+            return;
+        }
+
+        list.innerHTML = transactions.map((t) => `
+            <div class="card mb-2">
+                <div class="card-body">
+                    <strong>${t.listing_title || "Untitled listing"}</strong>
+                    <span class="text-muted"> &middot; ${t.role === "buyer" ? "Bought from" : "Sold to"} ${t.counterpart_name || "Unknown user"}</span>
+                    <div class="text-muted small">Completed ${formatDate(t.completed_at)}</div>
+                </div>
+            </div>
+        `).join("");
+    } catch (error) {
+        list.innerHTML = `<p class="text-danger">Unable to load transactions right now.</p>`;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("#starPicker .star").forEach((star) => {
         star.addEventListener("click", () => {
@@ -167,4 +196,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     loadPendingReviews();
+    loadTransactions();
 });
