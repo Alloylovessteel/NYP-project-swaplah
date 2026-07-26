@@ -24,10 +24,13 @@ def create_app(test_config=None):
     from .auth import auth_bp
     from .review_routes import review_bp
     from .offers_routes import offers_bp
+    from .transactions_routes import transactions_bp   # ADDED
+
     app.register_blueprint(listings_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(review_bp)
     app.register_blueprint(offers_bp)
+    app.register_blueprint(transactions_bp)            # ADDED
 
     @app.after_request
     def set_security_headers(response):
