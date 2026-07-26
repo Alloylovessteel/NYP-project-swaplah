@@ -205,6 +205,7 @@ def accept_offer(offer_id):
             listing_id=listing.id,
             buyer_id=offer.buyer_id,
             seller_id=listing.seller_id,
+            completed_at=datetime.now(timezone.utc),
         )
 
         db.session.add(transaction)
