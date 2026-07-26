@@ -42,9 +42,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const item = await response.json();
 
-        // 1. Authorization Logic (Mocked for Week 8)
-        // We assume User ID 1 is the 'Logged In' user until Shamreen merges Auth
-        const isOwner = item.seller_id === 1;
+        // 1. Authorization Logic
+        const isOwner = item.seller_id === CURRENT_USER_ID;
 
         // 2. Prepare the Edit button only if the user is the owner
         let editButtonHtml = "";
@@ -86,7 +85,13 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </div>
                 
                 <div class="mt-4 d-grid gap-2">
-                    <button class="btn btn-primary btn-lg">Make an Offer</button>
+                    ${isOwner ? "" : `
+                    <button
+                        class="btn btn-primary btn-lg"
+                        data-bs-toggle="modal"
+                        data-bs-target="#offerModal">
+                        Make an Offer
+                    </button>`}
 
                     <button
                         class="btn btn-outline-danger"
@@ -168,6 +173,28 @@ document.addEventListener("DOMContentLoaded", async () => {
                     </div>
                 </div>
 
+                <!-- Offer Modal -->
+                <div class="modal fade" id="offerModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Make an Offer</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Your Offer Price ($)</label>
+                                    <input type="number" class="form-control" id="offerPrice" min="0" step="0.01">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="submitOfferBtn">Submit Offer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         `;
 
@@ -175,74 +202,76 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadSellerRating(item.seller_id);
         }
 
-        const reportButton =
-            document.getElementById("submitReportBtn");
+        const reportButton = document.getElementById("submitReportBtn");
 
         if (reportButton) {
+            reportButton.addEventListener("click", async () => {
+                const reason = document.getElementById("reportReason").value;
+                const description = document.getElementById("reportDescription").value;
 
-            reportButton.addEventListener(
-                "click",
-                async () => {
-
-                    const reason =
-                        document.getElementById("reportReason").value;
-
-                    const description =
-                        document.getElementById("reportDescription").value;
-
-                    if (!reason || !description.trim()) {
-
-                        alert(
-                            "Please provide a reason and description."
-                        );
-
-                        return;
-                    }
-
-                    try {
-
-                        const response = await fetch(
-                            "/api/reports",
-                            {
-                                method: "POST",
-
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-
-                                body: JSON.stringify({
-                                    listing_id: item.id,
-                                    reason,
-                                    description
-                                })
-                            }
-                        );
-
-                        const result =
-                            await response.json();
-
-                        if (response.ok) {
-
-                            alert(result.message);
-
-                            location.reload();
-
-                        } else {
-
-                            alert(
-                                result.error ||
-                                "Failed to submit report."
-                            );
-                        }
-
-                    } catch {
-
-                        alert(
-                            "Unable to submit report."
-                        );
-                    }
+                if (!reason || !description.trim()) {
+                    alert("Please provide a reason and description.");
+                    return;
                 }
-            );
+
+                try {
+                    const response = await fetch("/api/reports", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            listing_id: item.id,
+                            reason,
+                            description
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert(result.error || "Failed to submit report.");
+                    }
+                } catch {
+                    alert("Unable to submit report.");
+                }
+            });
+        }
+
+        const offerButton = document.getElementById("submitOfferBtn");
+
+        if (offerButton) {
+            offerButton.addEventListener("click", async () => {
+                const offerPrice = document.getElementById("offerPrice").value;
+
+                if (!offerPrice) {
+                    alert("Please enter an offer price.");
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/offers", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            listing_id: item.id,
+                            offer_price: offerPrice
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert(result.message);
+                        bootstrap.Modal.getInstance(document.getElementById("offerModal")).hide();
+                    } else {
+                        alert(result.error || "Failed to submit offer.");
+                    }
+                } catch {
+                    alert("Unable to submit offer.");
+                }
+            });
         }
 
     } catch (error) {

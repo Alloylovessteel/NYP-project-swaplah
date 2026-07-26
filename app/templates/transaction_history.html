@@ -2,11 +2,13 @@
 
 {% block content %}
 <h2>Transaction History</h2>
-<p class="text-muted">
-    Full transaction history (offer details, item swapped, etc.) is being built out separately.
-    This page currently surfaces the Reviews &amp; Ratings side of things: transactions still
-    awaiting your review, and the reviews you've received.
-</p>
+
+<div id="transactionsContainer" class="mb-5">
+    <h4>Completed Transactions</h4>
+    <div id="transactionsList">
+        <p class="text-muted">Loading&hellip;</p>
+    </div>
+</div>
 
 <div id="pendingReviewsContainer" class="mb-5">
     <h4>Reviews You Owe</h4>
