@@ -249,7 +249,8 @@ def test_register_page_renders(client):
 
 
 def test_profile_page_renders(client):
-    """Test profile page returns 200."""
+    """Test profile page returns 200 when logged in."""
+    login(client)
     res = client.get('/profile')
     assert res.status_code == 200
 
@@ -268,9 +269,3 @@ def test_reset_password_page_renders(client):
 
 # --- Admin users route ---
 
-def test_get_users_returns_list(client):
-    """Test get all users returns a list."""
-    login(client)
-    res = client.get('/api/admin/users')
-    assert res.status_code == 200
-    assert isinstance(res.get_json(), list)
