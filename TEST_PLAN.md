@@ -64,3 +64,17 @@
 | TC10 | Administrator Authorization | Access Reports page without logging in | Administrator is not logged in | Navigate directly to `/admin/reports` | Access is denied and user is redirected to the login page or receives an Unauthorized response |
 | TC11 | Administrator Authorization | Access User Management page without logging in | Administrator is not logged in | Navigate directly to `/admin/users` | Access is denied and user is redirected to the login page or receives an Unauthorized response |
 | TC12 | Administrator Logout | Administrator logs out successfully | Administrator is logged in | Click **Logout** | Administrator session is cleared and user is redirected to the Administrator Login page |
+
+
+## Reviews & Ratings - Aloysius (252685H)
+
+| Test ID | Feature | Description | Precondition | Steps | Expected Result |
+|---------|---------|-------------|--------------|-------|-----------------|
+| TC01 | Reviews | Buyer reviews seller after transaction | Transaction completed | POST /api/reviews with rating and comment as buyer | Returns 201, review created |
+| TC02 | Reviews | Seller reviews buyer after transaction | Transaction completed | POST /api/reviews with rating and comment as seller | Returns 201, review created |
+| TC03 | Reviews | Rating must be between 1 and 5 | Transaction completed | POST /api/reviews with rating 6 | Returns 400, "Rating must be between 1 and 5" |
+| TC04 | Reviews | Cannot review same transaction twice | Review already submitted | POST /api/reviews again for same transaction/reviewer | Returns 400, "Review already exists" |
+| TC05 | Reviews | Non-participant cannot review | User is not buyer or seller on transaction | POST /api/reviews as unrelated user | Returns 403, "You are not a participant in this transaction" |
+| TC06 | Ratings | View a seller's average rating | Seller has reviews | GET /api/users/<id>/reviews | Returns 200 with average_rating and review_count |
+| TC07 | Ratings | New seller shows "New Trader" | Seller has no reviews | GET /api/users/<id>/reviews | Returns 200, "No ratings yet (New Trader)" |
+| TC08 | Admin | Removed listing's report clears from queue | Listing reported then deleted by admin | GET /api/admin/reports after deleting the listing | Report for that listing no longer appears in the list |
