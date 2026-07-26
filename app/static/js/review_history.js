@@ -123,7 +123,7 @@ async function loadTransactions() {
     if (!list) return;
 
     try {
-        const response = await fetch("/api/user/transactions");
+        const response = await fetch("/api/transactions");
         if (!response.ok) throw new Error("Failed to load transactions");
 
         const transactions = await response.json();

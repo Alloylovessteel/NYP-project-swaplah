@@ -1,7 +1,7 @@
 """Review routes."""
 
 from flask import Blueprint, request, jsonify, session, render_template
-from .auth import login_required_redirect
+from .auth import login_required_redirect, admin_required
 from .models import db, Review, Transaction
 from .review_service import (
     validate_rating,
@@ -103,7 +103,8 @@ def get_user_reviews(user_id):
     """
 
     reviews = Review.query.filter_by(
-        reviewee_id=user_id
+        reviewee_id=user_id,
+        is_deleted=False
     ).order_by(Review.created_at.desc()).all()
 
     if not reviews:
@@ -171,3 +172,45 @@ def get_pending_reviews():
 def transaction_history_page():
     """Render the transaction history / reviews page."""
     return render_template("transaction_history.html")
+
+
+@review_bp.route("/api/admin/reviews", methods=["GET"])
+@admin_required
+def get_all_reviews():
+    """Return every review (including admin-deleted ones) for moderation."""
+    reviews = Review.query.order_by(Review.created_at.desc()).all()
+
+    result = []
+    for review in reviews:
+        data = review.to_dict()
+        data["reviewee_display_name"] = review.reviewee.display_name if review.reviewee else None
+        result.append(data)
+
+    return jsonify(result), 200
+
+
+@review_bp.route("/api/admin/reviews/<int:review_id>/delete", methods=["PUT"])
+@admin_required
+def admin_delete_review(review_id):
+    """Soft-delete a review: hide it from the marketplace without removing
+    it from the database, and lock it against further admin action.
+    """
+    review = db.get_or_404(Review, review_id)
+
+    if review.is_deleted:
+        return jsonify({"error": "This review has already been deleted"}), 400
+
+    review.is_deleted = True
+    db.session.commit()
+
+    return jsonify({
+        "message": "Review deleted successfully",
+        "review": review.to_dict()
+    }), 200
+
+
+@review_bp.route("/admin/reviews")
+@admin_required
+def admin_reviews_page():
+    """Render the review moderation page."""
+    return render_template("admin_reviews.html", is_admin=True)
