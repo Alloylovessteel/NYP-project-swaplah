@@ -80,11 +80,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             `
             : "";
 
+        const pendingOfferCount = receivedOffers.filter(
+            (offer) => offer.status === "pending"
+        ).length;
+
+        const pendingBadgeHtml = pendingOfferCount > 0
+            ? `<span class="badge bg-danger ms-2">${pendingOfferCount} pending</span>`
+            : "";
+
         const offersSectionHtml = isOwner
             ? `
                 <div class="card mt-4">
                     <div class="card-body">
-                        <h5 class="card-title">Offers Received</h5>
+                        <h5 class="card-title">
+                            Offers Received${pendingBadgeHtml}
+                        </h5>
                         <hr>
                         <div id="sellerOffersContainer"></div>
                     </div>
@@ -425,7 +435,7 @@ function displaySellerOffers(offers) {
                 ? `
                     <p class="mb-1">
                         <strong>Swap listing:</strong>
-                        ${offer.swap_listing_id}
+                        ${offer.swap_listing_title || "(listing no longer available)"}
                     </p>
                 `
                 : "";
@@ -451,8 +461,8 @@ function displaySellerOffers(offers) {
             return `
                 <div class="border rounded p-3 mb-3">
                     <p class="mb-1">
-                        <strong>Buyer ID:</strong>
-                        ${offer.buyer_id}
+                        <strong>Buyer:</strong>
+                        ${offer.buyer_display_name || `Buyer #${offer.buyer_id}`}
                     </p>
 
                     <p class="mb-1">
