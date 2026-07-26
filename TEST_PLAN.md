@@ -77,4 +77,4 @@
 | TC05 | Reviews | Non-participant cannot review | User is not buyer or seller on transaction | POST /api/reviews as unrelated user | Returns 403, "You are not a participant in this transaction" |
 | TC06 | Ratings | View a seller's average rating | Seller has reviews | GET /api/users/<id>/reviews | Returns 200 with average_rating and review_count |
 | TC07 | Ratings | New seller shows "New Trader" | Seller has no reviews | GET /api/users/<id>/reviews | Returns 200, "No ratings yet (New Trader)" |
-| TC08 | Admin | Removed listing's report clears from queue | Listing reported then deleted by admin | GET /api/admin/reports after deleting the listing | Report for that listing no longer appears in the list |
+| TC08 | Admin | Admin can soft-delete a review | Review exists | PUT /api/admin/reviews/<id>/delete as admin | Returns 200, review hidden from public reviews list but still visible to admin |
