@@ -25,7 +25,7 @@ Built with Flask (backend), SQLite (database), and Bootstrap (frontend), as part
 ### Installation
 
 ```bash
-git clone https://gitlab.com/nyp-sg/pet/it2112/26s1/it2112-07/assignment/team_1/swaplah.git
+git clone https://github.com/Alloylovessteel/NYP-project-swaplah.git
 cd swaplah
 pip install -r requirements.txt
 ```
@@ -75,7 +75,7 @@ A successful response returns:
 
 ```json
 {
-  "status": "healthy"
+  "status": "ok"
 }
 ```
 
