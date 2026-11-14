@@ -226,3 +226,108 @@ def test_admin_logout(driver):
     )
 
     assert "/admin/login" in driver.current_url
+
+
+# --------------------------------------------------
+# Additional UI Test
+# Administrator login with empty fields
+# --------------------------------------------------
+
+def test_admin_login_empty_fields(driver):
+
+    driver.get(f"{BASE_URL}/admin/login")
+
+    wait = WebDriverWait(driver, 10)
+
+    wait.until(
+        EC.presence_of_element_located((By.ID, "email"))
+    )
+
+    driver.execute_script("doLogin()")
+
+    wait.until(
+        EC.visibility_of_element_located((By.ID, "error-msg"))
+    )
+
+    assert driver.find_element(
+        By.ID,
+        "error-msg"
+    ).is_displayed()
+
+
+# --------------------------------------------------
+# Additional UI Test
+# Non-existent administrator account
+# --------------------------------------------------
+
+def test_admin_login_unknown_account(driver):
+
+    driver.get(f"{BASE_URL}/admin/login")
+
+    wait = WebDriverWait(driver, 10)
+
+    wait.until(
+        EC.presence_of_element_located((By.ID, "email"))
+    )
+
+    driver.find_element(
+        By.ID,
+        "email"
+    ).send_keys("unknown@nyp.edu.sg")
+
+    driver.find_element(
+        By.ID,
+        "password"
+    ).send_keys("password123")
+
+    driver.execute_script("doLogin()")
+
+    wait.until(
+        EC.visibility_of_element_located((By.ID, "error-msg"))
+    )
+
+    assert driver.find_element(
+        By.ID,
+        "error-msg"
+    ).is_displayed()
+
+
+# --------------------------------------------------
+# Additional UI Test
+# Cannot access reports after logout
+# --------------------------------------------------
+
+def test_reports_after_logout(driver):
+
+    driver.get(f"{BASE_URL}/admin/login")
+
+    wait = WebDriverWait(driver, 10)
+
+    wait.until(
+        EC.presence_of_element_located((By.ID, "email"))
+    )
+
+    driver.find_element(
+        By.ID,
+        "email"
+    ).send_keys("253817B@mymail.nyp.edu.sg")
+
+    driver.find_element(
+        By.ID,
+        "password"
+    ).send_keys("password123")
+
+    driver.execute_script("doLogin()")
+
+    wait.until(
+        EC.url_contains("/admin/reports")
+    )
+
+    driver.get(f"{BASE_URL}/admin/logout")
+
+    driver.get(f"{BASE_URL}/admin/reports")
+
+    assert (
+        "Unauthorized" in driver.page_source
+        or "/admin/login" in driver.current_url
+    )

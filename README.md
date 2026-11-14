@@ -36,21 +36,32 @@ pip install -r requirements.txt
 python run.py
 ```
 
-The app runs at `http://127.0.0.1:5000`. > **Note:** There is currently no landing page. Start by visiting `/login` or `/marketplace`.
+The application runs at `http://127.0.0.1:5000`.
 
+> **Note:** There is currently no landing page. Start by visiting `/login` (Student Login) or `/admin/login` (Administrator Login). The marketplace and other protected pages are accessible only after successful login.
+
+### Seed Sample Data
+
+To populate the application with sample users, listings, reports, and administrator accounts, run:
+
+```bash
+python seed.py
+```
+
+This step is recommended before exploring the application or running the UI tests.
 
 | Page | URL |
 |------|-----|
-| Login | `http://127.0.0.1:5000/login` |
+| Student Login | `http://127.0.0.1:5000/login` |
+| Administrator Login | `http://127.0.0.1:5000/admin/login` |
 | Register | `http://127.0.0.1:5000/register` |
-| Profile | `http://127.0.0.1:5000/profile` |
-| Marketplace | `http://127.0.0.1:5000/marketplace` |
-| Create Listing | `http://127.0.0.1:5000/create-listing` |
-| Listing Details | `http://127.0.0.1:5000/listings/<listing_id>` |
-| Edit Listing | `http://127.0.0.1:5000/edit-listing/<listing_id>` |
-| Admin Reports | `http://127.0.0.1:5000/admin/reports` |
-| Admin Users | `http://127.0.0.1:5000/admin/users` |
-
+| Profile *(Login Required)* | `http://127.0.0.1:5000/profile` |
+| Marketplace *(Login Required)* | `http://127.0.0.1:5000/marketplace` |
+| Create Listing *(Login Required)* | `http://127.0.0.1:5000/create-listing` |
+| Listing Details *(Login Required)* | `http://127.0.0.1:5000/listings/<listing_id>` |
+| Edit Listing *(Login Required)* | `http://127.0.0.1:5000/edit-listing/<listing_id>` |
+| Admin Reports *(Administrator Only)* | `http://127.0.0.1:5000/admin/reports` |
+| Admin Users *(Administrator Only)* | `http://127.0.0.1:5000/admin/users` |
 
 ### Health Check
 
@@ -68,13 +79,25 @@ A successful response returns:
 }
 ```
 
+### Test Prerequisites
 
+Before running the UI tests:
+
+1. Start the application.
+2. Populate the database with sample data:
+
+```bash
+python seed.py
+```
+
+The UI tests use the sample administrator account and sample data created by the seed script.
 
 ### Running tests
 
 ```bash
 python -m pytest tests/unit/
 python -m pytest tests/api/
+python -m pytest tests/UI/
 python -m pytest
 ```
 
@@ -90,7 +113,7 @@ Copy `.env.example` to `.env` and fill in any required secrets before running th
 | Item Listings | Create, browse, search, filter, edit, soft-delete listings | Irsyad |
 | Offers & Transactions | Submit offers, accept/reject, transaction history | Ashlyn |
 | Reviews & Ratings | Star ratings and comments after completed transactions | Aloysius |
-| Reporting & Admin | Report listings, admin review, suspend users | Nann |
+| Reporting & Admin | Report listings, administrator authentication, admin review, suspend and unsuspend users | Nann |
 
 ---
 
@@ -142,6 +165,7 @@ POST /api/register
 ```
 
 Response `201`:
+
 ```json
 { "message": "Registration successful" }
 ```
@@ -157,6 +181,7 @@ POST /api/login
 ```
 
 Response `200`:
+
 ```json
 { "message": "Login successful", "user_id": 1 }
 ```

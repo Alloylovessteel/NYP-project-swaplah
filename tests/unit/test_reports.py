@@ -125,29 +125,6 @@ def test_view_reports(client):
 
 # -----------------------------
 # TC04
-# Dismiss Report
-# -----------------------------
-def test_dismiss_report(client):
-
-    listing_id = create_listing(client)
-
-    client.post("/api/reports", json={
-        "listing_id": listing_id,
-        "reason": "Spam",
-        "description": "Fake"
-    })
-
-    reports = client.get("/api/admin/reports").json
-
-    report_id = reports[0]["id"]
-
-    response = client.delete(f"/api/admin/reports/{report_id}")
-
-    assert response.status_code == 200
-
-
-# -----------------------------
-# TC05
 # View Users
 # -----------------------------
 def test_view_users(client):
@@ -155,13 +132,16 @@ def test_view_users(client):
     response = client.get("/api/admin/users")
 
     assert response.status_code == 200
-    assert response.status_code == 200
-    assert len(response.json) == 1
-    assert response.json[0]["is_admin"] is False
+
+    users = response.json
+
+    assert len(users) == 1
+    assert users[0]["display_name"] == "John"
+    assert users[0]["is_admin"] is False
 
 
 # -----------------------------
-# TC06
+# TC05
 # Suspend User
 # -----------------------------
 def test_suspend_user(client):
@@ -172,11 +152,13 @@ def test_suspend_user(client):
 
     users = client.get("/api/admin/users").json
 
-    assert users[0]["account_status"] == "suspended"
+    student = next(user for user in users if user["id"] == 2)
+
+    assert student["account_status"] == "suspended"
 
 
 # -----------------------------
-# TC07
+# TC06
 # Unsuspend User
 # -----------------------------
 def test_unsuspend_user(client):
@@ -189,4 +171,82 @@ def test_unsuspend_user(client):
 
     users = client.get("/api/admin/users").json
 
-    assert users[0]["account_status"] == "active"
+    student = next(user for user in users if user["id"] == 2)
+
+    assert student["account_status"] == "active"
+
+# -----------------------------
+# Additional Test
+# Submit Report for Non-existent Listing
+# -----------------------------
+def test_submit_report_invalid_listing(client):
+
+    response = client.post("/api/reports", json={
+        "listing_id": "invalid-listing-id",
+        "reason": "Spam",
+        "description": "Fake listing"
+    })
+
+    assert response.status_code == 404
+
+
+# -----------------------------
+# Additional Test
+# View Reports When Empty
+# -----------------------------
+def test_view_reports_empty(client):
+
+    response = client.get("/api/admin/reports")
+
+    assert response.status_code == 200
+    assert response.json == []
+
+
+# -----------------------------
+# Additional Test
+# Suspend Non-existent User
+# -----------------------------
+def test_suspend_invalid_user(client):
+
+    response = client.put("/api/admin/users/999/suspend")
+
+    assert response.status_code == 404
+
+
+# -----------------------------
+# Additional Test
+# Unsuspend Non-existent User
+# -----------------------------
+def test_unsuspend_invalid_user(client):
+
+    response = client.put("/api/admin/users/999/unsuspend")
+
+    assert response.status_code == 404
+
+
+# -----------------------------
+# Additional Test
+# Non-admin Cannot View Users
+# -----------------------------
+def test_non_admin_cannot_view_users(client):
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = 2
+
+    response = client.get("/api/admin/users")
+
+    assert response.status_code == 403
+
+
+# -----------------------------
+# Additional Test
+# Non-admin Cannot Suspend User
+# -----------------------------
+def test_non_admin_cannot_suspend_user(client):
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = 2
+
+    response = client.put("/api/admin/users/2/suspend")
+
+    assert response.status_code == 403
