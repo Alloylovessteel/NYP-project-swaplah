@@ -5,9 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+
 class User(db.Model):
     """Model representing a student user."""
     __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.String(20), unique=True, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
@@ -17,6 +19,7 @@ class User(db.Model):
     contact_number = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     account_status = db.Column(db.String(20), default='active')
+    is_admin = db.Column(db.Boolean, default=False)
     listings = db.relationship('Listing', backref='seller', lazy=True)
 
 
@@ -56,7 +59,8 @@ class Listing(db.Model):
             "last_modified": self.last_modified.isoformat(),
             "seller_id": self.seller_id
         }
-    
+
+
 class Report(db.Model):
     """Model representing a reported listing."""
 
@@ -161,3 +165,68 @@ class Transaction(db.Model):
         db.DateTime,
         default=lambda: datetime.now(timezone.utc)
     )
+
+    listing = db.relationship('Listing', foreign_keys=[listing_id])
+    buyer = db.relationship('User', foreign_keys=[buyer_id])
+    seller = db.relationship('User', foreign_keys=[seller_id])
+
+
+class Review(db.Model):
+    """Model representing a completed transaction review."""
+
+    __tablename__ = 'reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    transaction_id = db.Column(
+        db.Integer,
+        db.ForeignKey('transactions.id'),
+        nullable=False
+    )
+
+    reviewer_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    reviewee_id = db.Column(
+        db.Integer,
+        db.ForeignKey('users.id'),
+        nullable=False
+    )
+
+    rating = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    comment = db.Column(
+        db.String(500),
+        nullable=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    is_deleted = db.Column(db.Boolean, default=False)
+
+    reviewer = db.relationship('User', foreign_keys=[reviewer_id])
+    reviewee = db.relationship('User', foreign_keys=[reviewee_id])
+    transaction = db.relationship('Transaction', foreign_keys=[transaction_id])
+
+    def to_dict(self):
+        """Convert review instance to dictionary for JSON responses."""
+        return {
+            "id": self.id,
+            "transaction_id": self.transaction_id,
+            "reviewer_id": self.reviewer_id,
+            "reviewer_display_name": self.reviewer.display_name if self.reviewer else None,
+            "reviewee_id": self.reviewee_id,
+            "rating": self.rating,
+            "comment": self.comment,
+            "created_at": self.created_at.isoformat(),
+            "is_deleted": self.is_deleted
+        }

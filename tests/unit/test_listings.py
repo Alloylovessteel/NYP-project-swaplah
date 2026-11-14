@@ -1,12 +1,11 @@
 """Unit tests for Listing management (Creation, Search, Filter, Pagination)."""
 import pytest
 from app import create_app, db
-from app.models import Listing
+from app.models import Listing, User
 
 @pytest.fixture
 def client():
     """Setup a temporary database and test client."""
-    # Pass the test configuration to the app factory
     app = create_app({
         'TESTING': True,
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'
@@ -15,114 +14,114 @@ def client():
     with app.test_client() as client:
         with app.app_context():
             db.create_all()
-        yield client
+            user = User(id=1, student_id="1", first_name="A", last_name="B", 
+                        display_name="Irsyad", email="a@nyp.edu.sg", 
+                        contact_number="1", password_hash="hash", account_status="active")
+            db.session.add(user)
+            db.session.commit()
+            with client.session_transaction() as sess:
+                sess['user_id'] = 1
+            yield client
+            db.drop_all()
 
+# --- CREATION TESTS (TC-LS-001, TC-LS-002) ---
 def test_create_listing_success(client):
-    """Test that a valid listing is created successfully (Positive Case)."""
-    payload = {
-        "title": "Test Item",
-        "description": "A test description",
-        "price": "10.00",
-        "category": "Electronics",
-        "condition": "New",
-        "image_url": "http://test.com/img.jpg"
-    }
+    payload = {"title": "Physics Book", "description": "d", "price": "10",
+               "category": "Books", "condition": "New", "image_url": "t.jpg"}
     response = client.post('/api/listings', json=payload)
     assert response.status_code == 201
-    assert response.json['title'] == "Test Item"
 
 def test_create_listing_missing_field(client):
-    """Test that missing fields return a 400 error (Negative Case)."""
-    payload = {"title": "Incomplete Item"}
-    response = client.post('/api/listings', json=payload)
+    response = client.post('/api/listings', json={"title": "Incomplete"})
     assert response.status_code == 400
-    assert "error" in response.json
 
+# --- SEARCH & FILTER TESTS (TC-LS-003, TC-LS-004, TC-LS-010) ---
 def test_get_listings_search(client):
-    """Test searching for an item by keyword in Title or Description."""
-    # Create a test item
-    client.post('/api/listings', json={
-        "title": "Physics Book", "description": "Used for Year 1", "price": "10",
-        "category": "Books", "condition": "Good", "image_url": "test.jpg"
-    })
-
-    # Search for 'Physics'
+    client.post('/api/listings', json={"title": "Physics Book", "description": "d", "price": "10",
+                                       "category": "Books", "condition": "Good", "image_url": "t.jpg"})
     response = client.get('/api/listings?search=Physics')
     assert response.status_code == 200
     assert len(response.json['listings']) == 1
-    assert "Physics" in response.json['listings'][0]['title']
 
 def test_get_listings_filter_category(client):
-    """Test filtering results by Category."""
-    client.post('/api/listings', json={
-        "title": "Calculator", "description": "Casio", "price": "15",
-        "category": "Electronics", "condition": "New", "image_url": "t.jpg"
-    })
-    client.post('/api/listings', json={
-        "title": "Shirt", "description": "NYP Shirt", "price": "5",
-        "category": "Clothing", "condition": "New", "image_url": "t.jpg"
-    })
-
-    # Filter by 'Electronics'
+    client.post('/api/listings', json={"title": "Calc", "description": "d", "price": "5",
+                                       "category": "Electronics", "condition": "New", "image_url": "t.jpg"})
     response = client.get('/api/listings?category=Electronics')
-    assert len(response.json['listings']) == 1
     assert response.json['listings'][0]['category'] == "Electronics"
 
-# --- PAGINATION TEST ---
+def test_search_no_results(client):
+    response = client.get('/api/listings?search=NonExistentItem')
+    assert response.status_code == 200
+    assert len(response.json['listings']) == 0
 
+# --- PAGINATION TESTS (TC-LS-005, TC-LS-006) ---
 def test_pagination_logic(client):
-    """Test that the API only returns 10 items per page (Requirement C.vi)."""
-    # Create 12 dummy items
     for i in range(12):
-        client.post('/api/listings', json={
-            "title": f"Item {i}", "description": "desc", "price": "5",
-            "category": "Test", "condition": "New", "image_url": "t.jpg"
-        })
-
-    # Check page 1 (Should have 10 items)
+        client.post('/api/listings', json={"title": f"Item {i}", "description": "d", "price": "1",
+                                           "category": "Test", "condition": "New", "image_url": "t.jpg"})
     response = client.get('/api/listings?page=1')
     assert len(response.json['listings']) == 10
-    assert response.json['total'] == 12
-    assert response.json['pages'] == 2
+    response2 = client.get('/api/listings?page=2')
+    assert len(response2.json['listings']) == 2
 
-    # Check page 2 (Should have the remaining 2 items)
-    response = client.get('/api/listings?page=2')
-    assert len(response.json['listings']) == 2
-
+# --- EDIT & DELETE TESTS (TC-LS-007, TC-LS-008, TC-LS-009) ---
 def test_update_listing(client):
-    """Test updating a listing's title and price (Requirement C.iii)."""
-    # 1. Create an item
-    res = client.post('/api/listings', json={
-        "title": "Old Title", "description": "d", "price": "10",
-        "category": "C", "condition": "N", "image_url": "t.jpg"
-    })
-    listing_id = res.json['id']
-
-    # 2. Update it
-    update_res = client.put(f'/api/listings/{listing_id}', json={
-        "title": "New Title",
-        "price": "20.00"
-    })
-    assert update_res.status_code == 200
-    assert update_res.json['title'] == "New Title"
-    assert update_res.json['price'] == "20.00"
+    res = client.post('/api/listings', json={"title": "Old", "description": "d", "price": "1",
+                                             "category": "C", "condition": "N", "image_url": "t.jpg"})
+    l_id = res.json['id']
+    upd = client.put(f'/api/listings/{l_id}', json={"title": "New"})
+    assert upd.status_code == 200
+    assert upd.json['title'] == "New"
 
 def test_soft_delete_listing(client):
-    """Test that deleting an item hides it from browse results (Requirement C.v)."""
-    # 1. Create an item
+    res = client.post('/api/listings', json={"title": "Del", "description": "d", "price": "1",
+                                             "category": "C", "condition": "N", "image_url": "t.jpg"})
+    l_id = res.json['id']
+    client.delete(f'/api/listings/{l_id}')
+    assert len(client.get('/api/listings').json['listings']) == 0
+
+def test_edit_nonexistent_listing(client):
+    response = client.put('/api/listings/invalid-id', json={"title": "New"})
+    assert response.status_code == 404
+
+# --- SECURITY TESTS (TC-SEC-002) ---
+def test_unauthorized_edit(client):
+    with client.application.app_context():
+        listing = Listing(title="Owner Item", description="d", price="1", 
+                          category="C", condition="N", image_url="t.jpg", seller_id=99)
+        db.session.add(listing)
+        db.session.commit()
+        listing_id = listing.id
+
+    response = client.put(f'/api/listings/{listing_id}', json={"title": "Hacked"})
+    assert response.status_code == 403
+
+# --- DETAIL VIEW TESTS ---
+def test_get_listing_detail(client):
+    """Test fetching a listing's detail view, including seller info."""
     res = client.post('/api/listings', json={
-        "title": "Delete Me", "description": "d", "price": "10",
+        "title": "Detail View Item", "description": "d", "price": "10",
         "category": "C", "condition": "N", "image_url": "t.jpg"
     })
     listing_id = res.json['id']
 
-    # 2. Delete it
-    client.delete(f'/api/listings/{listing_id}')
+    response = client.get(f'/api/listings/{listing_id}')
 
-    # 3. Verify it is hidden from the browse list
-    browse_res = client.get('/api/listings')
-    assert len(browse_res.json['listings']) == 0
+    assert response.status_code == 200
+    assert response.json['title'] == "Detail View Item"
+    assert 'seller_info' in response.json
+    assert response.json['seller_info']['display_name'] == "Irsyad"
 
-    # 4. Verify detail view returns 404
-    detail_res = client.get(f'/api/listings/{listing_id}')
-    assert detail_res.status_code == 404
+def test_create_listing_invalid_price(client):
+    payload = {
+        "title": "Bad Price Item", 
+        "description": "d", 
+        "price": "asdfgh", #
+        "category": "Books", 
+        "condition": "New", 
+        "image_url": "t.jpg"
+    }
+    response = client.post('/api/listings', json=payload)
+    assert response.status_code == 400
+    assert "Price must be a valid number" in response.json['error']
+

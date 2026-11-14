@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SwapLah - Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+        .navbar { background: #1a73e8; }
+        .navbar-brand { font-weight: 700; font-size: 1.5rem; color: white !important; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
+        .card-header { background: linear-gradient(135deg, #1a73e8, #0d47a1); border-radius: 16px 16px 0 0 !important; padding: 2rem; }
+        .card-header h4 { color: white; font-weight: 700; margin: 0; }
+        .card-header p { color: rgba(255,255,255,0.8); margin: 0.25rem 0 0; font-size: 0.9rem; }
+        .form-control { border-radius: 10px; padding: 0.75rem 1rem; border: 1.5px solid #e0e0e0; transition: all 0.2s; }
+        .form-control:focus { border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26,115,232,0.15); }
+        .form-control.is-valid { border-color: #28a745; }
+        .form-control.is-invalid { border-color: #dc3545; }
+        .btn-success { background: #1a73e8; border: none; border-radius: 10px; padding: 0.75rem; font-weight: 600; transition: all 0.2s; }
+        .btn-success:hover { background: #0d47a1; transform: translateY(-1px); }
+        .input-group-text { border-radius: 0 10px 10px 0; border: 1.5px solid #e0e0e0; background: white; cursor: pointer; border-left: none; }
+        .input-group .form-control { border-radius: 10px 0 0 10px; border-right: none; }
+        .strength-bar { height: 6px; border-radius: 3px; transition: all 0.3s; background: #e0e0e0; margin-top: 6px; }
+        .strength-fill { height: 100%; border-radius: 3px; transition: all 0.3s; width: 0%; }
+        .alert { border-radius: 10px; font-size: 0.9rem; }
+        .step-badge { background: #1a73e8; color: white; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; margin-right: 8px; }
+        .section-title { font-weight: 600; color: #333; font-size: 0.95rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #f0f4f8; }
+        .spinner-border { width: 1.2rem; height: 1.2rem; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/marketplace">🔄 SwapLah</a>
+        <div class="ms-auto">
+            <a href="/marketplace" class="text-white text-decoration-none me-3"><i class="bi bi-shop"></i> Marketplace</a>
+            <a href="/login" class="btn btn-light btn-sm fw-semibold">Login</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <div style="font-size:2rem; margin-bottom:0.5rem;">🎓</div>
+                    <h4>Create your SwapLah account</h4>
+                    <p>Join the NYP student marketplace</p>
+                </div>
+                <div class="card-body p-4">
+                    <div id="error-msg" class="alert alert-danger d-none">
+                        <i class="bi bi-exclamation-circle me-2"></i><span id="error-text"></span>
+                    </div>
+                    <div id="success-msg" class="alert alert-success d-none">
+                        <i class="bi bi-check-circle me-2"></i><span id="success-text"></span>
+                    </div>
+
+                    <div class="section-title"><span class="step-badge">1</span>Student Information</div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Student ID</label>
+                        <input type="text" id="student_id" class="form-control" placeholder="e.g. 241011Z" oninput="validateField(this, val => val.length >= 5, 'Invalid student ID')">
+                        <div class="invalid-feedback">Please enter a valid student ID.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold">First Name</label>
+                            <input type="text" id="first_name" class="form-control" placeholder="Jane" oninput="validateField(this, val => val.trim().length > 0, 'Required')">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold">Last Name</label>
+                            <input type="text" id="last_name" class="form-control" placeholder="Tan" oninput="validateField(this, val => val.trim().length > 0, 'Required')">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Display Name <span class="text-muted fw-normal">(shown to other users)</span></label>
+                        <input type="text" id="display_name" class="form-control" placeholder="e.g. Jane T" oninput="validateField(this, val => val.trim().length > 0, 'Required')">
+                    </div>
+
+                    <div class="section-title"><span class="step-badge">2</span>Contact Details</div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">NYP Email</label>
+                        <div class="input-group">
+                            <input type="email" id="email" class="form-control" placeholder="yourname@nyp.edu.sg" oninput="validateEmail(this)">
+                            <span class="input-group-text"><i class="bi bi-envelope text-muted"></i></span>
+                        </div>
+                        <div class="form-text text-muted"><i class="bi bi-info-circle"></i> Only @nyp.edu.sg or @mymail.nyp.edu.sg accepted</div>
+                        <div id="email-feedback" class="mt-1" style="font-size:0.85rem;"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Contact Number</label>
+                        <div class="input-group">
+                            <input type="tel" id="contact_number" class="form-control" placeholder="e.g. 91234567" oninput="validateField(this, val => /^[689]\d{7}$/.test(val), 'Enter a valid SG number')">
+                            <span class="input-group-text"><i class="bi bi-phone text-muted"></i></span>
+                        </div>
+                        <div class="form-text text-muted">Singapore mobile number (8 digits)</div>
+                    </div>
+
+                    <div class="section-title"><span class="step-badge">3</span>Set Password</div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Password</label>
+                        <div class="input-group">
+                            <input type="password" id="password" class="form-control" placeholder="Create a strong password" oninput="checkStrength(this.value)">
+                            <span class="input-group-text" onclick="togglePassword('password', 'eye1')">
+                                <i class="bi bi-eye" id="eye1"></i>
+                            </span>
+                        </div>
+                        <div class="strength-bar mt-2"><div class="strength-fill" id="strength-fill"></div></div>
+                        <div id="strength-text" class="form-text"></div>
+                        <ul class="mt-2 mb-0 ps-3" style="font-size:0.8rem; color:#666;">
+                            <li id="req-len" class="text-muted">At least 8 characters</li>
+                            <li id="req-upper" class="text-muted">One uppercase letter</li>
+                            <li id="req-num" class="text-muted">One number</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Confirm Password</label>
+                        <div class="input-group">
+                            <input type="password" id="confirm_password" class="form-control" placeholder="Repeat your password" oninput="checkMatch()">
+                            <span class="input-group-text" onclick="togglePassword('confirm_password', 'eye2')">
+                                <i class="bi bi-eye" id="eye2"></i>
+                            </span>
+                        </div>
+                        <div id="match-text" class="form-text"></div>
+                    </div>
+
+                    <button onclick="doRegister()" id="registerBtn" class="btn btn-success w-100 mb-3">
+                        <span id="btnText">Create Account</span>
+                        <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2"></span>
+                    </button>
+
+                    <p class="text-center text-muted mb-0" style="font-size:0.9rem;">
+                        Already have an account? <a href="/login" class="text-decoration-none fw-semibold" style="color:#1a73e8;">Sign in here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+    icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+
+function validateField(input, ruleFn, msg) {
+    if (input.value && !ruleFn(input.value)) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+    } else if (input.value) {
+        input.classList.add('is-valid');
+        input.classList.remove('is-invalid');
+    }
+}
+
+function validateEmail(input) {
+    const val = input.value;
+    const feedback = document.getElementById('email-feedback');
+    const nyp = /^[a-zA-Z0-9._%+-]+@(nyp\.edu\.sg|mymail\.nyp\.edu\.sg)$/.test(val);
+    if (val && nyp) {
+        input.classList.add('is-valid'); input.classList.remove('is-invalid');
+        feedback.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> Valid NYP email</span>';
+    } else if (val) {
+        input.classList.add('is-invalid'); input.classList.remove('is-valid');
+        feedback.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> Must be an NYP email address</span>';
+    }
+}
+
+function checkStrength(val) {
+    const fill = document.getElementById('strength-fill');
+    const text = document.getElementById('strength-text');
+    const reqLen = document.getElementById('req-len');
+    const reqUpper = document.getElementById('req-upper');
+    const reqNum = document.getElementById('req-num');
+    let score = 0;
+    const hasLen = val.length >= 8;
+    const hasUpper = /[A-Z]/.test(val);
+    const hasNum = /[0-9]/.test(val);
+    const hasSpecial = /[^A-Za-z0-9]/.test(val);
+    if (hasLen) { score++; reqLen.className = 'text-success'; } else { reqLen.className = 'text-muted'; }
+    if (hasUpper) { score++; reqUpper.className = 'text-success'; } else { reqUpper.className = 'text-muted'; }
+    if (hasNum) { score++; reqNum.className = 'text-success'; } else { reqNum.className = 'text-muted'; }
+    if (hasSpecial) score++;
+    const colors = ['#e0e0e0', '#dc3545', '#fd7e14', '#ffc107', '#28a745'];
+    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+    fill.style.width = (score * 25) + '%';
+    fill.style.background = colors[score];
+    text.innerHTML = score > 0 ? `<span style="color:${colors[score]}">${labels[score]} password</span>` : '';
+}
+
+function checkMatch() {
+    const p = document.getElementById('password').value;
+    const c = document.getElementById('confirm_password').value;
+    const t = document.getElementById('match-text');
+    const ci = document.getElementById('confirm_password');
+    if (c && p === c) {
+        t.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> Passwords match</span>';
+        ci.classList.add('is-valid'); ci.classList.remove('is-invalid');
+    } else if (c) {
+        t.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> Passwords do not match</span>';
+        ci.classList.add('is-invalid'); ci.classList.remove('is-valid');
+    }
+}
+
+async function doRegister() {
+    const errorMsg = document.getElementById('error-msg');
+    const errorText = document.getElementById('error-text');
+    const successMsg = document.getElementById('success-msg');
+    const successText = document.getElementById('success-text');
+    const btn = document.getElementById('registerBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('btnSpinner');
+
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
+
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm_password').value;
+
+    if (password !== confirm) {
+        errorText.textContent = 'Passwords do not match.';
+        errorMsg.classList.remove('d-none');
+        return;
+    }
+
+    const body = {
+        student_id: document.getElementById('student_id').value.trim(),
+        first_name: document.getElementById('first_name').value.trim(),
+        last_name: document.getElementById('last_name').value.trim(),
+        display_name: document.getElementById('display_name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        contact_number: document.getElementById('contact_number').value.trim(),
+        password
+    };
+
+    for (const [key, val] of Object.entries(body)) {
+        if (!val) {
+            errorText.textContent = `Please fill in all fields.`;
+            errorMsg.classList.remove('d-none');
+            return;
+        }
+    }
+
+    btn.disabled = true;
+    btnText.textContent = 'Creating account...';
+    spinner.classList.remove('d-none');
+
+    try {
+        const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            successText.textContent = 'Account created! Redirecting to login...';
+            successMsg.classList.remove('d-none');
+            setTimeout(() => window.location.href = '/login', 1500);
+        } else {
+            errorText.textContent = data.error;
+            errorMsg.classList.remove('d-none');
+            btn.disabled = false;
+            btnText.textContent = 'Create Account';
+            spinner.classList.add('d-none');
+        }
+    } catch (err) {
+        errorText.textContent = 'Something went wrong. Please try again.';
+        errorMsg.classList.remove('d-none');
+        btn.disabled = false;
+        btnText.textContent = 'Create Account';
+        spinner.classList.add('d-none');
+    }
+}
+</script>
+</body>
+</html>

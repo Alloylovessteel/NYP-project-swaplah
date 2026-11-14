@@ -12,8 +12,10 @@
 
 {% block scripts %}
 <script>
-    // Pass the listing ID from Flask to JavaScript
+    // Pass the listing ID and logged-in user ID from Flask to JavaScript
     const LISTING_ID = "{{ listing_id }}";
+    const CURRENT_USER_ID = {{ current_user_id }};
 </script>
+
 <script src="{{ url_for('static', filename='js/listing_detail.js') }}"></script>
 {% endblock %}
