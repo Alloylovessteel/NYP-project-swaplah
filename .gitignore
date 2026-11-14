@@ -9,6 +9,7 @@ __pycache__/
 # Project logs
 AI/*.log
 
+# Generated test output
 *.db
 instance/
-
+.coverage
