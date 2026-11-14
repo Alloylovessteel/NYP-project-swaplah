@@ -26,7 +26,7 @@ Built with Flask (backend), SQLite (database), and Bootstrap (frontend), as part
 
 ```bash
 git clone https://github.com/Alloylovessteel/NYP-project-swaplah.git
-cd swaplah
+cd NYP-project-swaplah
 pip install -r requirements.txt
 ```
 
@@ -38,7 +38,7 @@ python run.py
 
 The application runs at `http://127.0.0.1:5000`.
 
-> **Note:** There is currently no landing page. Start by visiting `/login` (Student Login) or `/admin/login` (Administrator Login). The marketplace and other protected pages are accessible only after successful login.
+> The home page redirects to the marketplace. If you are signed out, protected pages redirect you to `/login`. Administrators can sign in at `/admin/login`.
 
 ### Seed Sample Data
 
@@ -48,7 +48,9 @@ To populate the application with sample users, listings, reports, and administra
 python seed.py
 ```
 
-This step is recommended before exploring the application or running the UI tests.
+> **Warning:** `seed.py` drops and recreates all database tables before adding sample data. Run it only against a disposable local database; it will erase existing data.
+
+After seeding, use the sample accounts created by the script to explore the application or run UI tests.
 
 | Page | URL |
 |------|-----|
@@ -60,6 +62,10 @@ This step is recommended before exploring the application or running the UI test
 | Create Listing *(Login Required)* | `http://127.0.0.1:5000/create-listing` |
 | Listing Details *(Login Required)* | `http://127.0.0.1:5000/listings/<listing_id>` |
 | Edit Listing *(Login Required)* | `http://127.0.0.1:5000/edit-listing/<listing_id>` |
+| Transaction History *(Login Required)* | `http://127.0.0.1:5000/transaction-history` |
+| Admin Reviews *(Administrator Only)* | `http://127.0.0.1:5000/admin/reviews` |
+| Forgot Password | `http://127.0.0.1:5000/forgot-password` |
+| Reset Password | `http://127.0.0.1:5000/reset-password` |
 | Admin Reports *(Administrator Only)* | `http://127.0.0.1:5000/admin/reports` |
 | Admin Users *(Administrator Only)* | `http://127.0.0.1:5000/admin/users` |
 
@@ -103,7 +109,7 @@ python -m pytest
 
 ### Environment variables
 
-Copy `.env.example` to `.env` and fill in any required secrets before running the app.
+The current app factory uses a development-only `SECRET_KEY` in `app/__init__.py`. Do not deploy with that key. Configure a private production secret and update the app factory to load it from the deployment environment before deploying. Do not commit real secrets.
 
 ## Features
 
@@ -139,6 +145,14 @@ Handles student registration, authentication, session management, and profile ma
 | PUT | `/api/admin/users/<int:user_id>/unsuspend` | Reinstate a suspended user account | Yes (Admin) |
 | POST | `/api/reviews` | Submit a review for a completed transaction | Yes |
 | GET | `/api/users/<int:user_id>/reviews` | View a user's reviews and average rating | No |
+| POST | `/api/offers` | Create a price offer or swap offer | Yes |
+| GET | `/api/listings/<listing_id>/offers` | View offers for a listing you own | Yes (Owner) |
+| POST | `/api/offers/<offer_id>/accept` | Accept an offer and create a transaction | Yes (Owner) |
+| POST | `/api/offers/<offer_id>/reject` | Reject an offer | Yes (Owner) |
+| GET | `/api/transactions` | Retrieve your transaction history | Yes |
+| GET | `/api/reviews/pending` | List transactions awaiting your review | Yes |
+| GET | `/api/admin/reviews` | View reviews for moderation | Yes (Admin) |
+| PUT | `/api/admin/reviews/<review_id>/delete` | Hide a review | Yes (Admin) |
 
 ### Business rules
 
