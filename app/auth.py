@@ -20,7 +20,6 @@ def check_session_and_requests():
         if not user or user.account_status == 'suspended':
             suspended = user is not None
             session.clear()
-            # Let the user reach login, logout, health, and static resources.
             public_endpoints = {
                 'static', 'health_check',
                 'auth.login_page', 'auth.login',
@@ -140,7 +139,6 @@ def login():
     if not user or not check_password_hash(user.password_hash, data['password']):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    # Block admin accounts from using the student login
     if user.is_admin:
         return jsonify({
             "error": "Please use the Administrator Login page."
@@ -321,7 +319,6 @@ def logout_page():
     return redirect('/login')
 
 
-# Admin login / logout
 @auth_bp.route('/admin/login')
 def admin_login_page():
     """Render the admin login page."""
@@ -330,8 +327,7 @@ def admin_login_page():
 
 @auth_bp.route('/api/admin/login', methods=['POST'])
 def admin_login():
-    """Temporary admin login."""
-
+    """Administrator login."""
     data = request.get_json()
 
     if not data.get("email") or not data.get("password"):
@@ -342,13 +338,11 @@ def admin_login():
     if not user or not check_password_hash(user.password_hash, data["password"]):
         return jsonify({"error": "Invalid email or password"}), 401
 
-    # Check suspension
     if user.account_status == "suspended":
         return jsonify({
             "error": "Your account has been suspended"
         }), 403
 
-    # NEW: Only admins can log in here
     if not user.is_admin:
         return jsonify({
             "error": "This account is not an administrator account."
@@ -366,7 +360,5 @@ def admin_login():
 @auth_bp.route('/admin/logout')
 def admin_logout():
     """Logout administrator."""
-
     session.clear()
-
     return redirect('/admin/login')
