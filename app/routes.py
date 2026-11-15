@@ -56,7 +56,12 @@ def create_listing():
 @listings_bp.route('/api/listings', methods=['GET'])
 def get_listings():
     """Returns active listings with search, filter, and pagination."""
-    query = Listing.query.filter_by(is_deleted=False)
+    # Hide suspended sellers without deleting their listings. They reappear
+    # automatically if the account is reinstated.
+    query = Listing.query.filter(
+        Listing.is_deleted.is_(False),
+        ~Listing.seller.has(User.account_status == "suspended"),
+    )
 
     search_query = request.args.get('search')
     if search_query:
@@ -92,7 +97,7 @@ def handle_single_listing(listing_id):
 
     # 1. GET: Fetch Details
     if request.method == 'GET':
-        if listing.is_deleted:
+        if listing.is_deleted or (listing.seller and listing.seller.account_status == "suspended"):
             return jsonify({"error": "Listing not found"}), 404
         result = listing.to_dict()
         if listing.seller:
