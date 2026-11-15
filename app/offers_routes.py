@@ -31,7 +31,7 @@ def create_offer():
 
     listing = Listing.query.get(listing_id)
 
-    if not listing:
+    if not listing or (listing.seller and listing.seller.account_status == "suspended"):
         return jsonify({"error": "Listing not found"}), 404
 
     if listing.seller_id == buyer_id:
