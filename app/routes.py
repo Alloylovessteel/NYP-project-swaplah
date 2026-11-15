@@ -52,28 +52,24 @@ def create_listing():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
-    
+
+
 @listings_bp.route('/api/listings', methods=['GET'])
 def get_listings():
     """Returns active listings with search, filter, and pagination."""
-    # Hide suspended sellers without deleting their listings. They reappear
-    # automatically if the account is reinstated.
-    query = Listing.query.filter(
-        Listing.is_deleted.is_(False),
-        ~Listing.seller.has(User.account_status == "suspended"),
-    )
+    query = Listing.query.filter(Listing.is_deleted.is_(False))
 
     search_query = request.args.get('search')
     if search_query:
         query = query.filter(
-            (Listing.title.ilike(f'%{search_query}%')) | 
+            (Listing.title.ilike(f'%{search_query}%')) |
             (Listing.description.ilike(f'%{search_query}%'))
         )
 
     category_filter = request.args.get('category')
     if category_filter:
         query = query.filter_by(category=category_filter)
-        
+
     condition_filter = request.args.get('condition')
     if condition_filter:
         query = query.filter_by(condition=condition_filter)
@@ -90,6 +86,7 @@ def get_listings():
         "current_page": pagination.page
     }), 200
 
+
 @listings_bp.route('/api/listings/<listing_id>', methods=['GET', 'PUT', 'DELETE'])
 def handle_single_listing(listing_id):
     """Handles fetching, updating, and deleting a single listing."""
@@ -97,7 +94,7 @@ def handle_single_listing(listing_id):
 
     # 1. GET: Fetch Details
     if request.method == 'GET':
-        if listing.is_deleted or (listing.seller and listing.seller.account_status == "suspended"):
+        if listing.is_deleted:
             return jsonify({"error": "Listing not found"}), 404
         result = listing.to_dict()
         if listing.seller:
@@ -135,17 +132,20 @@ def handle_single_listing(listing_id):
         db.session.commit()
         return jsonify({"message": "Listing successfully deleted"}), 200
 
+
 @listings_bp.route('/marketplace')
 @login_required_redirect
 def marketplace_page():
     """Render the Marketplace HTML page."""
     return render_template('listings.html')
 
+
 @listings_bp.route('/create-listing')
 @login_required_redirect
 def create_listing_page():
     """Render the Create Listing HTML page."""
     return render_template('create_listing.html')
+
 
 @listings_bp.route('/listings/<listing_id>')
 @login_required_redirect
@@ -157,14 +157,13 @@ def listing_detail_page(listing_id):
         current_user_id=session.get('user_id')
     )
 
+
 @listings_bp.route('/edit-listing/<listing_id>')
 @login_required_redirect
 def edit_listing_page(listing_id):
     """Render the Edit Listing HTML page."""
     return render_template('edit_listing.html', listing_id=listing_id)
 
-# Reports
-    ...
 
 # Reports
 @listings_bp.route('/api/reports', methods=['POST'])
@@ -212,7 +211,8 @@ def create_report():
             "error": "Internal Server Error",
             "message": str(e)
         }), 500
-    
+
+
 @listings_bp.route('/api/admin/reports', methods=['GET'])
 @admin_required
 def get_reports():
@@ -234,6 +234,7 @@ def get_reports():
         [report.to_dict() for report in reports]
     ), 200
 
+
 @listings_bp.route('/admin/reports')
 @admin_required
 def reports_page():
@@ -243,6 +244,7 @@ def reports_page():
         'reports.html',
         is_admin=True
     )
+
 
 @listings_bp.route('/api/admin/reports/<int:report_id>', methods=['DELETE'])
 @admin_required
@@ -258,6 +260,7 @@ def dismiss_report(report_id):
         "message": "Report dismissed successfully"
     }), 200
 
+
 @listings_bp.route('/admin/users')
 @admin_required
 def users_page():
@@ -267,6 +270,7 @@ def users_page():
         'users.html',
         is_admin=True
     )
+
 
 @listings_bp.route('/api/admin/users/<int:user_id>/suspend', methods=['PUT'])
 @admin_required
@@ -281,6 +285,7 @@ def suspend_user(user_id):
     return jsonify({
         "message": "User suspended successfully"
     }), 200
+
 
 @listings_bp.route('/api/admin/users/<int:user_id>/unsuspend', methods=['PUT'])
 @admin_required
