@@ -51,7 +51,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             '<p class="mb-1"><strong>Email:</strong> <a href="mailto:' + (seller.email || '') + '">' + (seller.email || 'N/A') + '</a></p>' +
             '<p class="mb-0"><strong>Phone:</strong> ' + (seller.contact_number || 'N/A') + '</p></div></div>' +
             (isOwner ? '<div class="card mt-4"><div class="card-body"><h5 class="card-title">Offers Received' + (pendingCount ? ' <span class="badge bg-danger ms-2">' + pendingCount + ' pending</span>' : '') + '</h5><hr><div id="sellerOffersContainer"></div></div></div>' : '') +
-            '<div class="mt-4 d-grid gap-2">' + (isOwner ? '' : '<button class="btn btn-primary btn-lg" id="makeOfferBtn">Make an Offer</button>') +
+            '<div class="mt-4 d-grid gap-2">' + (isOwner ? '' : '<div id="offerMessage" role="status" aria-live="polite"></div>' +
+                '<button type="button" class="btn btn-primary btn-lg" id="makeOfferBtn">Make an Offer</button>' +
+                '<form id="offerForm" class="border rounded p-3" hidden novalidate>' +
+                '<label for="offerPrice" class="form-label">Offer price</label>' +
+                '<input id="offerPrice" class="form-control mb-3" type="number" min="0.01" step="any" required>' +
+                '<div class="d-flex gap-2"><button type="submit" id="submitOfferBtn" class="btn btn-primary">Submit offer</button>' +
+                '<button type="button" id="cancelOfferBtn" class="btn btn-outline-secondary">Cancel</button></div></form>') +
             '<button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reportModal">Report Listing</button>' +
             (isOwner ? '<a href="/edit-listing/' + item.id + '" class="btn btn-outline-secondary">Edit My Listing</a>' : '') + '</div>' +
             '<div class="modal fade" id="reportModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Report Listing</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>' +
@@ -61,24 +67,62 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (item.seller_id) loadSellerRating(item.seller_id);
         if (isOwner) displaySellerOffers(receivedOffers);
         const makeOfferButton = document.getElementById("makeOfferBtn");
-        if (makeOfferButton) makeOfferButton.addEventListener("click", async () => {
-            const enteredPrice = prompt("Enter your offer price:");
-            if (enteredPrice === null) return;
-            const offerPrice = Number(enteredPrice);
-            if (!enteredPrice.trim() || !Number.isFinite(offerPrice) || offerPrice <= 0) {
-                alert("Please enter a valid offer price.");
-                return;
+        if (makeOfferButton) {
+            const form = document.getElementById("offerForm");
+            const priceInput = document.getElementById("offerPrice");
+            const submitButton = document.getElementById("submitOfferBtn");
+            const message = document.getElementById("offerMessage");
+
+            function showOfferMessage(text, isError) {
+                message.className = isError ? "alert alert-danger" : "alert alert-success";
+                message.textContent = text;
             }
-            try {
-                const response = await fetch("/api/offers", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ listing_id: item.id, offer_price: offerPrice })
-                });
-                const result = await response.json();
-                if (response.ok) alert(result.message);
-                else alert(result.error || "Unable to create offer.");
-            } catch (error) { alert("Unable to create offer."); }
-        });
+
+            makeOfferButton.addEventListener("click", () => {
+                message.textContent = "";
+                message.className = "";
+                makeOfferButton.hidden = true;
+                form.hidden = false;
+                priceInput.focus();
+            });
+            document.getElementById("cancelOfferBtn").addEventListener("click", () => {
+                form.hidden = true;
+                form.reset();
+                message.textContent = "";
+                message.className = "";
+                makeOfferButton.hidden = false;
+                makeOfferButton.focus();
+            });
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const enteredPrice = priceInput.value.trim();
+                const offerPrice = Number(enteredPrice);
+                if (!enteredPrice || !Number.isFinite(offerPrice) || offerPrice <= 0) {
+                    showOfferMessage("Please enter an offer price greater than zero.", true);
+                    return;
+                }
+                submitButton.disabled = true;
+                try {
+                    const response = await fetch("/api/offers", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ listing_id: item.id, offer_price: offerPrice })
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        form.hidden = true;
+                        form.reset();
+                        makeOfferButton.hidden = false;
+                        showOfferMessage(result.message || "Offer created successfully.", false);
+                    } else {
+                        showOfferMessage(result.error || "Unable to create offer.", true);
+                    }
+                } catch (error) {
+                    showOfferMessage("Unable to create offer. Please try again.", true);
+                } finally {
+                    submitButton.disabled = false;
+                }
+            });
+        }
         document.getElementById("submitReportBtn").addEventListener("click", async () => {
             const reason = document.getElementById("reportReason").value;
             const description = document.getElementById("reportDescription").value.trim();
