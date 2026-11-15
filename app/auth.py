@@ -4,11 +4,54 @@ import secrets
 from functools import wraps
 from flask import Blueprint, request, jsonify, session, render_template, redirect
 from werkzeug.security import generate_password_hash, check_password_hash
-from .models import db, User
+from .models import db, User, Listing
 
 auth_bp = Blueprint('auth', __name__)
 
 reset_tokens = {}
+
+
+@auth_bp.before_app_request
+def check_session_and_requests():
+    """Check sessions, report access, and availability of offered items."""
+    user_id = session.get('user_id')
+    if user_id:
+        user = db.session.get(User, user_id)
+        if not user or user.account_status == 'suspended':
+            suspended = user is not None
+            session.clear()
+            # Let the user reach login, logout, health, and static resources.
+            public_endpoints = {
+                'static', 'health_check',
+                'auth.login_page', 'auth.login',
+                'auth.admin_login_page', 'auth.admin_login',
+                'auth.logout_page', 'auth.logout', 'auth.admin_logout',
+            }
+            if request.endpoint not in public_endpoints:
+                if request.path.startswith('/api/'):
+                    message = 'Your account has been suspended' if suspended else 'Unauthorized'
+                    return jsonify({'error': message}), 403 if suspended else 401
+                return redirect('/admin/login' if request.path.startswith('/admin') else '/login')
+
+    if request.method == 'POST' and request.endpoint == 'listings.create_report':
+        if not session.get('user_id'):
+            return jsonify({'error': 'Unauthorized'}), 401
+
+    if (request.method == 'POST' and request.endpoint == 'offers.create_offer'
+            and session.get('user_id')):
+        data = request.get_json(silent=True)
+        if isinstance(data, dict):
+            for field, error in (
+                ('listing_id', 'Listing not found'),
+                ('swap_listing_id', 'Swap listing not found'),
+            ):
+                listing_id = data.get(field)
+                if isinstance(listing_id, (str, int, float)) and not isinstance(listing_id, bool):
+                    listing = db.session.get(Listing, str(listing_id))
+                    if listing and listing.is_deleted:
+                        return jsonify({'error': error}), 404
+
+    return None
 
 
 def is_nyp_email(email):
@@ -24,16 +67,17 @@ def admin_required(f):
         user_id = session.get('user_id')
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
-        
+
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
-        
+
         if not user.is_admin:
             return jsonify({"error": "Forbidden - Admin access required"}), 403
-        
+
         return f(*args, **kwargs)
     return decorated_function
+
 
 def login_required_redirect(f):
     """Decorator to redirect unauthenticated users to login page."""
@@ -127,7 +171,7 @@ def logout():
 def view_profile():
     """View the logged-in user's profile."""
     if 'user_id' not in session:
-        return jsonify({"error": "Unauthorized"}), 401
+        [redacted] jsonify({"error": "Unauthorized"}), 401
 
     user = User.query.get(session['user_id'])
     if not user:
@@ -147,7 +191,7 @@ def view_profile():
 def edit_profile():
     """Edit the logged-in user's profile."""
     if 'user_id' not in session:
-        return jsonify({"error": "Unauthorized"}), 401
+        [redacted] jsonify({"error": "Unauthorized"}), 401
 
     user = User.query.get(session['user_id'])
     if not user:
@@ -188,20 +232,20 @@ def forgot_password():
     if not user:
         return jsonify({"error": "No account found with that email"}), 404
 
-    token = secrets.token_urlsafe(32)
+    token = [redacted])
     reset_tokens[token] = user.id
-    return jsonify({"message": "Reset token generated", "token": token}), 200
+    return jsonify({"message": "Reset token generated", "token": [redacted]}), 200
 
 
 @auth_bp.route('/api/reset-password', methods=['POST'])
 def reset_password():
     """Reset password using a valid token."""
     data = request.get_json()
-    token = data.get('token')
-    new_password = data.get('password')
+    token = [redacted]'token')
+    new_password = [redacted]'password')
 
     if not token or not new_password:
-        return jsonify({"error": "Token and new password are required"}), 400
+        [redacted] jsonify({"error": "Token and new password are required"}), 400
 
     user_id = reset_tokens.get(token)
     if not user_id:
@@ -269,17 +313,20 @@ def reset_password_page():
     """Render the reset password page."""
     return render_template('reset_password.html')
 
+
 @auth_bp.route('/logout')
 def logout_page():
     """Logout the current user and redirect to login."""
     session.clear()
     return redirect('/login')
 
+
 # Admin login / logout
 @auth_bp.route('/admin/login')
 def admin_login_page():
     """Render the admin login page."""
     return render_template('admin_login.html')
+
 
 @auth_bp.route('/api/admin/login', methods=['POST'])
 def admin_login():
@@ -314,6 +361,7 @@ def admin_login():
         "message": "Administrator login successful",
         "user_id": user.id
     }), 200
+
 
 @auth_bp.route('/admin/logout')
 def admin_logout():
