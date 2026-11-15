@@ -169,7 +169,7 @@ def logout():
 def view_profile():
     """View the logged-in user's profile."""
     if 'user_id' not in session:
-        [redacted] jsonify({"error": "Unauthorized"}), 401
+        return jsonify({"error": "Unauthorized"}), 401
 
     user = User.query.get(session['user_id'])
     if not user:
@@ -189,7 +189,7 @@ def view_profile():
 def edit_profile():
     """Edit the logged-in user's profile."""
     if 'user_id' not in session:
-        [redacted] jsonify({"error": "Unauthorized"}), 401
+        return jsonify({"error": "Unauthorized"}), 401
 
     user = User.query.get(session['user_id'])
     if not user:
@@ -230,20 +230,20 @@ def forgot_password():
     if not user:
         return jsonify({"error": "No account found with that email"}), 404
 
-    token = [redacted])
+    token = secrets.token_hex(32)
     reset_tokens[token] = user.id
-    return jsonify({"message": "Reset token generated", "token": [redacted]}), 200
+    return jsonify({"message": "Reset token generated", "token": token}), 200
 
 
 @auth_bp.route('/api/reset-password', methods=['POST'])
 def reset_password():
     """Reset password using a valid token."""
     data = request.get_json()
-    token = [redacted]'token')
-    new_password = [redacted]'password')
+    token = data.get('token')
+    new_password = data.get('password')
 
     if not token or not new_password:
-        [redacted] jsonify({"error": "Token and new password are required"}), 400
+        return jsonify({"error": "Token and new password are required"}), 400
 
     user_id = reset_tokens.get(token)
     if not user_id:
