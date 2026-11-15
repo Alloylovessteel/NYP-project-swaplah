@@ -1,6 +1,12 @@
 > [!IMPORTANT]
 > **Academic Project Disclaimer:** This application was developed strictly for educational purposes as part of an NYP coursework assignment (IT2112). While functional for demonstration, it is not intended for production deployment or commercial use by external parties.
 
+Would like to thank my teammates on working with me on this project. Do note that this application is purely a demonstration, hence, expect bugs in this application. We have tried to fix as many bugs as possible within the stipulated deadline but we are well aware that there are several bugs still unresolved. 
+
+There will not be any further contribution to this project, as of 15 November 2026
+
+Project requirements have been attached to this repository, as a PDF file **IT2112-project-requirments-assignments**
+
 # SwapLah
 
 SwapLah is a web-based student co-op marketplace where NYP students can buy, sell, and swap pre-owned items such as textbooks, lab equipment, electronics, stationery, and clothing.
