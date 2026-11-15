@@ -1,8 +1,13 @@
+> [!IMPORTANT]
+> **Academic Project Disclaimer:** This application was developed strictly for educational purposes as part of an NYP coursework assignment (IT2112). While functional for demonstration, it is not intended for production deployment or commercial use by external parties.
+
 # SwapLah
 
 SwapLah is a web-based student co-op marketplace where NYP students can buy, sell, and swap pre-owned items such as textbooks, lab equipment, electronics, stationery, and clothing.
 
 Built with Flask (backend), SQLite (database), and Bootstrap (frontend), as part of IT2112 26S1.
+
+
 
 ## Team
 
@@ -221,4 +226,4 @@ Response `200`:
 - [ ] **Peer Review:** Merge Request (MR) is created, reviewed, and approved by at least one other team member.
 - [ ] **Validation:** All Acceptance Criteria (AC) for the issue are verified and ticked.
 - [ ] **Regression Testing:** No regression; existing features are confirmed to work.
-- [ ] **Closure:** Issue is moved to "Done" on the GitLab board and MR is merged to `main`.
+- [ ] **Closure:** The issue is moved to "Done" on the GitLab board and the MR is merged into `main`.
