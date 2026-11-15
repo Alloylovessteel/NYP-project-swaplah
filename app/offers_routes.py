@@ -31,7 +31,7 @@ def create_offer():
 
     listing = Listing.query.get(listing_id)
 
-    if not listing or (listing.seller and listing.seller.account_status == "suspended"):
+    if not listing:
         return jsonify({"error": "Listing not found"}), 404
 
     if listing.seller_id == buyer_id:
@@ -210,10 +210,7 @@ def accept_offer(offer_id):
 
         db.session.add(transaction)
 
-        # The item has now been sold/swapped, so it should no longer show
-        # up in the marketplace or be open to further offers. Reusing the
-        # existing soft-delete flag keeps this consistent with how removed
-        # listings already behave everywhere else in the app.
+        # Hide the sold or swapped item from the marketplace.
         listing.is_deleted = True
 
         db.session.flush()
